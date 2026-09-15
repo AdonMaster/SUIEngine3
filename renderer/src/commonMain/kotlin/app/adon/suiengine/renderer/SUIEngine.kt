@@ -1,13 +1,16 @@
 package app.adon.suiengine.renderer
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.adon.suiengine.ast.Lexer
 import app.adon.suiengine.ast.Parser
 import app.adon.suiengine.renderer.components.DialogError
+import app.adon.suiengine.renderer.components.DialogErrorStack
 import app.adon.suiengine.renderer.resource.Resource
 
 class SUIEngine {
@@ -18,6 +21,9 @@ class SUIEngine {
     //
     @Composable
     fun Render(payload: String) {
+
+        val vm: SUIEngineVM = viewModel { SUIEngineVM() }
+        val rootContext = remember(vm) { Context("root", null, vm) }
 
         // initializing nodes
         val (nodes, err) = remember(payload) {
@@ -31,17 +37,28 @@ class SUIEngine {
         }
 
         // invoker
-        InvokeGroup(nodes)
+        FunctionRegistry.InvokeGroup(
+            nodes = nodes,
+            context = rootContext
+        )
 
-        // dialog error
+        // parsing error
         var showErrorDialog by remember(err) { mutableStateOf(err != null) }
         if (err != null && showErrorDialog) {
-            DialogError(
-                message = err,
+            DialogErrorStack(
+                errors = listOf("from root", err),
                 onDismiss = {
                     showErrorDialog = false
                 }
             )
+        }
+
+        // render error
+        val renderErrors by vm.errors.collectAsState()
+        if (renderErrors.isNotEmpty()) {
+            DialogErrorStack(renderErrors.asReversed()) {
+                vm.setErrors(emptyList())
+            }
         }
 
     }

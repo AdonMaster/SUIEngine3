@@ -32,15 +32,15 @@ fun DialogError(
 ) {
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
+            shape = RoundedCornerShape(8.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 8.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(0.dp)
         ) {
             Column(
-                modifier = Modifier.padding(24.dp),
+                modifier = Modifier.padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Título
@@ -49,8 +49,6 @@ fun DialogError(
                     style = MaterialTheme.typography.titleLarge,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Caixa com scroll para a mensagem técnica de erro (caso seja grande)
                 Box(
@@ -71,12 +69,10 @@ fun DialogError(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(24.dp))
-
                 // Botão de ação principal
                 Button(
                     onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier,
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error,
                         contentColor = MaterialTheme.colorScheme.onError
