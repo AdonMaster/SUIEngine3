@@ -62,8 +62,8 @@ fun App() {
                     Text(text = localState.msg, color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
-            is DataState.Success<*> -> {
-                suiengine.Render()
+            is DataState.Success -> {
+                suiengine.Render(localState.payload)
             }
         }
     }
