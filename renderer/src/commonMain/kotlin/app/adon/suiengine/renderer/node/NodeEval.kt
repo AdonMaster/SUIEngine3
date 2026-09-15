@@ -25,7 +25,7 @@ fun Node.eval(
                 context.raise("eval: Referencia circular [${seen.joinToString(", ")}]")
                 Node.Null
             } else {
-                context.retrieveState(self.name)
+                context.retrieveState(self.name).eval(context, seen)
             }
         }
 
@@ -44,3 +44,21 @@ fun Node.eval(
 inline fun <reified T> Node.evalAs(context: Context, seen: MutableSet<String> = mutableSetOf()): T? {
     return this.eval(context, seen) as? T
 }
+
+fun Node.evalAsStrValue(context: Context, seen: MutableSet<String> = mutableSetOf()): String {
+    return this.eval(context, seen).stringableVal()
+}
+fun Node.evalAsBool(context: Context, seen: MutableSet<String> = mutableSetOf()): Node.Bool? {
+    return this.evalAs<Node.Bool>(context, seen)
+}
+fun Node.evalAsInt(context: Context, seen: MutableSet<String> = mutableSetOf()): Node.Integer? {
+    return this.evalAs<Node.Integer>(context, seen)
+}
+fun Node.evalAsReal(context: Context, seen: MutableSet<String> = mutableSetOf()): Node.Real? {
+    return this.evalAs<Node.Real>(context, seen)
+}
+
+//is Node.Bool,
+//is Node.Str,
+//is Node.Integer,
+//is Node.Real,

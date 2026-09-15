@@ -24,7 +24,7 @@ sealed class Node {
         is Integer -> this.v.toString()
         is Real -> this.v.toString()
         is Bool -> this.v.toString()
-        Null -> "null"
+        Null -> ""
 
         is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringableVal() ?: "null" }
         is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringableVal()}" }

@@ -1,7 +1,11 @@
 package app.adon.suiengine.renderer
 
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.RowScope
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.extensions.upwards
+import app.adon.suiengine.renderer.ui.LayoutScope
 
 class Context(
     val name: String, val parent: Context?, val vm: SUIEngineVM
@@ -23,9 +27,20 @@ class Context(
         )
     }
 
+    // layout scope
+    private var _layoutScope: LayoutScope? = null
+    val layoutScope get() = _layoutScope
+    private fun setLayoutScope(scope: LayoutScope): Context {
+        _layoutScope = scope
+        return this
+    }
+    fun withLayoutScope(scope: ColumnScope) = setLayoutScope(LayoutScope.Col(scope))
+    fun withLayoutScope(scope: RowScope) = setLayoutScope(LayoutScope.Row(scope))
+    fun withLayoutScope(scope: BoxScope) = setLayoutScope(LayoutScope.Box(scope))
+
     // state
     private val stateBinding = mutableMapOf<String, String>()
-    fun storeState(stablePrefix: String, key: String?, value: Node) {
+    fun initialState(stablePrefix: String, key: String?, value: Node) {
         if (key == null) {
             raise("store state should have a name")
         } else {
@@ -36,16 +51,17 @@ class Context(
     }
 
     fun safeStoreState(key: String?, value: Node) {
-        if (key == null) {
-            raise("store state should have a name")
-        } else {
-            val stableKey = findStableKey(key)
-            if (stableKey == null) {
-                raise("state [$key] not found")
-            } else {
-                vm.setState(stableKey, value)
-            }
+        runCatching {
+            unsafeStoreState(key, value)
+        }.onFailure {
+            raise(it.message!!)
         }
+    }
+
+    fun unsafeStoreState(key: String?, value: Node) {
+        if (key == null) throw Exception("store state should have a name")
+        val stableKey = findStableKey(key) ?: throw Exception("state [$key] not found")
+        vm.setState(stableKey, value)
     }
 
     private fun findStableKey(key: String): String? {

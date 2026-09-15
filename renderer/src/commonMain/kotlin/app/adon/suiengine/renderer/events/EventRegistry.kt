@@ -1,9 +1,10 @@
-package app.adon.suiengine.renderer.components.events
+package app.adon.suiengine.renderer.events
 
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.Context
 import app.adon.suiengine.renderer.extensions.toEnum
 import app.adon.suiengine.renderer.node.NodeParamSolver
+import app.adon.suiengine.renderer.node.eval
 
 enum class EventFilter {
     TOUCH
@@ -11,7 +12,9 @@ enum class EventFilter {
 object EventRegistry {
 
     fun trigger(filter: EventFilter, node: Node.Fn, context: Context) {
-        runSingle(filter, node, context, mutableListOf())
+        for (child in node.children) {
+            runSingle(filter, child, context, mutableListOf())
+        }
     }
 
     private fun runSingle(filter: EventFilter, node: Node, context: Context, acc: List<Node.Fn>) {
@@ -37,8 +40,10 @@ object EventRegistry {
                         runSingle(filter, ch, context, acc + fn)
                     }
                 }
-                "@set" -> {
- TODO: FJSKJDKSLFJDSLFDSJLFDKJ
+                "@set" -> run {
+                    fn.params.forEach { param ->
+                        context.unsafeStoreState(param.name, param.value.eval(context))
+                    }
                 }
             }
         }.onFailure { err ->
