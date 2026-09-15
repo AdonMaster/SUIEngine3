@@ -1,0 +1,35 @@
+package app.adon.suiengine.ast
+
+import com.benasher44.uuid.uuid4
+
+sealed class Node {
+
+    val uid: String = uuid4().toString()
+
+    data class Str(val v: String): Node()
+    data class Integer(val v: Int): Node()
+    data class Real(val v: Float): Node()
+    data class Bool(val v: Boolean): Node()
+    data object Null: Node()
+
+    data class Arr(val v: List<Node>): Node()
+    data class Dict(val v: Map<String, Node>): Node()
+
+    data class Fn(val name: String, val params: List<Param>, val children: List<Node>): Node()
+    data class Param(val name: String?, val value: Node): Node()
+    data class Var(val name: String): Node()
+
+    fun stringable(): String = when (this) {
+        is Str -> this.v
+        is Integer -> this.v.toString()
+        is Real -> this.v.toString()
+        is Bool -> this.v.toString()
+        Null -> "null"
+
+        is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringable() ?: "null" }
+        is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringable()}" }
+        is Param -> "param ($name = ${value.stringable()})"
+        is Fn -> "fn $name(${params.joinToString { it.stringable() ?: "" }})"
+        is Var -> name
+    }
+}
