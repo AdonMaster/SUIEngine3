@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
@@ -12,6 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.adon.suiengine.ast.Node
+import app.adon.suiengine.renderer.node.NodeParamSolver
+import app.adon.suiengine.renderer.node.eval
+
 
 typealias FnRenderer = @Composable (Node.Fn, Context) -> Unit
 object FunctionRegistry {
@@ -40,7 +44,7 @@ object FunctionRegistry {
             InvokeGroup(node.children, context.newChild(node.name))
         },
 
-        "@on" to { node, context ->
+        "@set" to { node, context ->
 
         },
 
@@ -71,14 +75,30 @@ object FunctionRegistry {
         },
 
         "text" to { node, context ->
-            Text("aki")
+            val paramSolver = NodeParamSolver(node.params, listOf("text"))
+            val text = paramSolver.get("text")?.eval(context)?.stringableVal() ?: ""
+            Text(text = text, modifier = Modifier.padding(20.dp))
         },
 
         "btn" to { node, context ->
+            // params
+            val paramSolver = NodeParamSolver(node.params, listOf("text"))
+            val textValue = paramSolver.get("text")?.eval(context)?.stringableVal()
             Button(
-                onClick = {}
+                onClick = {
+//                    node.childrenFnByNameAndSingleParamValue("@on", "touch")
+//                        .flatMap { it.childrenFnByName("@set") }
+//                        .flatMap { it.params }
+//                        .forEach { param ->
+//                            context.safeStoreState(param.name, param.value.eval(context))
+//                        }
+                }
             ) {
-                InvokeGroup(node.children, context.newChild(node.name))
+                if (textValue != null) {
+                    Text(textValue)
+                } else {
+                    InvokeGroup(node.children, context.newChild(node.name))
+                }
             }
         }
     )

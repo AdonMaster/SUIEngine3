@@ -29,9 +29,34 @@ class Context(
         if (key == null) {
             raise("store state should have a name")
         } else {
-            val stableId = "$stablePrefix.$key"
-            vm.setState(stableId, value)
-            stateBinding[key] = stableId
+            val stableKey = "$stablePrefix.$key"
+            vm.setState(stableKey, value)
+            stateBinding[key] = stableKey
         }
+    }
+
+    fun safeStoreState(key: String?, value: Node) {
+        if (key == null) {
+            raise("store state should have a name")
+        } else {
+            val stableKey = findStableKey(key)
+            if (stableKey == null) {
+                raise("state [$key] not found")
+            } else {
+                vm.setState(stableKey, value)
+            }
+        }
+    }
+
+    private fun findStableKey(key: String): String? {
+        return stateBinding[key] ?: parent?.findStableKey(key)
+    }
+
+    fun retrieveState(key: String): Node {
+        val stableKey = findStableKey(key)
+        if (stableKey != null) return vm.states[stableKey] ?: Node.Null
+        // fail
+        raise("state [$key] not found")
+        return Node.Null
     }
 }

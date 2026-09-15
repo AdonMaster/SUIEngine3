@@ -19,17 +19,17 @@ sealed class Node {
     data class Param(val name: String?, val value: Node): Node()
     data class Var(val name: String): Node()
 
-    fun stringable(): String = when (this) {
+    fun stringableVal(): String = when (this) {
         is Str -> this.v
         is Integer -> this.v.toString()
         is Real -> this.v.toString()
         is Bool -> this.v.toString()
         Null -> "null"
 
-        is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringable() ?: "null" }
-        is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringable()}" }
-        is Param -> "param ($name = ${value.stringable()})"
-        is Fn -> "fn $name(${params.joinToString { it.stringable() ?: "" }})"
+        is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringableVal() ?: "null" }
+        is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringableVal()}" }
+        is Param -> "param ($name = ${value.stringableVal()})"
+        is Fn -> "fn $name(${params.joinToString { it.stringableVal() ?: "" }})"
         is Var -> name
     }
 }

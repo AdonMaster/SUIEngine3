@@ -126,7 +126,7 @@ private fun RenderItem(node: Node, depth: Int) {
         }
 
         else -> {
-            Txt(node.stringable(), depth)
+            Txt(node.stringableVal(), depth)
         }
     }
 }

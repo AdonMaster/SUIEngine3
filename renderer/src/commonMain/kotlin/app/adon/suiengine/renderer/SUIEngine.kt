@@ -23,7 +23,9 @@ class SUIEngine {
     fun Render(payload: String) {
 
         val vm: SUIEngineVM = viewModel { SUIEngineVM() }
-        val rootContext = remember(vm) { Context("root", null, vm) }
+        val rootContext = remember(payload, vm) {
+            Context("root", null, vm)
+        }
 
         // initializing nodes
         val (nodes, err) = remember(payload) {

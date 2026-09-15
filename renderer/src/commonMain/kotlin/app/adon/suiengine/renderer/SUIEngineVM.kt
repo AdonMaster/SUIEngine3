@@ -18,8 +18,8 @@ class SUIEngineVM: ViewModel() {
 
     private val _states = mutableStateMapOf<String, Node>()
     val states: SnapshotStateMap<String, Node> = _states
-    fun setState(stableId: String, value: Node) {
-        _states[stableId] = value
+    fun setState(key: String, value: Node) {
+        _states[key] = value
     }
 
 }
