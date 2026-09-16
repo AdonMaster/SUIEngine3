@@ -93,18 +93,30 @@ class Parser(private val tokens: List<Token>) {
             }
             TokenType.AT -> {
                 advance() // consume o @
-                val name = consume(TokenType.IDENTIFIER, "Esperado o nome da função após '@'")
+                val name = consume(TokenType.IDENTIFIER, "Esperado o nome da função após '@' na linha ${token.line}")
                 val fullName = "@${name.value}"
                 if (match(TokenType.LPAREN)) {
                     parseFunction(fullName)
                 } else {
-                    throw RuntimeException("Esperado parêntese após o identificador '$fullName'")
+                    throw RuntimeException("Esperado parêntese após o identificador '$fullName' na linha ${token.line}")
                 }
             }
             TokenType.DOLLAR -> {
-                advance() // consume o @
-                val nameToken = consume(TokenType.IDENTIFIER, "Esperado o nome da variável após '$'")
-                Node.Var(nameToken.value)
+                advance() // consume o $
+                val path = mutableListOf<String>()
+
+                // Pega o primeiro identificador obrigatório
+                val firstId = consume(TokenType.IDENTIFIER, "Esperado o nome da variável após '$' na linha ${token.line}")
+                path.add(firstId.value)
+
+                // Enquanto o próximo token for um ponto, continua acumulando as propriedades
+                while (check(TokenType.DOT)) {
+                    advance() // consume o .
+                    val nextId = consume(TokenType.IDENTIFIER, "Esperado o nome da propriedade após '.' na linha ${token.line}")
+                    path.add(nextId.value)
+                }
+
+                Node.Var(path)
             }
             TokenType.IDENTIFIER -> {
                 val name = advance().value

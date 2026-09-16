@@ -28,3 +28,5 @@ class NodeParamSolver(
         return anonymousParams.getOrNull(targetIndex)
     }
 }
+
+fun Node.Fn.paramSolver(vararg names: String) = NodeParamSolver(this.params, names.toList())

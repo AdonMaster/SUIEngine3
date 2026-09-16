@@ -30,7 +30,7 @@ class Context(
     // layout scope
     private var _layoutScope: LayoutScope? = null
     val layoutScope get() = _layoutScope
-    private fun setLayoutScope(scope: LayoutScope): Context {
+    fun setLayoutScope(scope: LayoutScope?): Context {
         _layoutScope = scope
         return this
     }
@@ -68,11 +68,30 @@ class Context(
         return stateBinding[key] ?: parent?.findStableKey(key)
     }
 
-    fun retrieveState(key: String): Node {
-        val stableKey = findStableKey(key)
+    fun retrieveState(path: List<String>): Node
+    {
+        if (path.isEmpty()) return Node.Null
+        val rootKey = path.first()
+
+        // search for virtual first
+        retrieveVirtualState(rootKey)?.let { return it }
+
+        // then it checks viewmodel state
+        val stableKey = findStableKey(rootKey)
         if (stableKey != null) return vm.states[stableKey] ?: Node.Null
         // fail
-        raise("state [$key] not found")
+        raise("state [$rootKey] not found")
         return Node.Null
+    }
+
+
+    // virtual state
+    private val virtualStore = mutableMapOf<String, Node>()
+    fun setVirtual(key: String, value: Node) {
+        virtualStore[key] = value
+    }
+
+    private fun retrieveVirtualState(key: String): Node? {
+        return virtualStore[key] ?: parent?.retrieveVirtualState(key)
     }
 }

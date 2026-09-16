@@ -17,7 +17,7 @@ sealed class Node {
 
     data class Fn(val name: String, val params: List<Param>, val children: List<Node>): Node()
     data class Param(val name: String?, val value: Node): Node()
-    data class Var(val name: String): Node()
+    data class Var(val path: List<String>): Node()
 
     fun stringableVal(): String = when (this) {
         is Str -> this.v
@@ -30,6 +30,6 @@ sealed class Node {
         is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringableVal()}" }
         is Param -> "param ($name = ${value.stringableVal()})"
         is Fn -> "fn $name(${params.joinToString { it.stringableVal() ?: "" }})"
-        is Var -> name
+        is Var -> this.path.joinToString(".")
     }
 }

@@ -1,13 +1,11 @@
 package app.adon.suiengine.ast
 
-import com.benasher44.uuid.uuid4
-
 enum class TokenType {
     INT, REAL, STRING, TRUE, FALSE, NULL,
 
     IDENTIFIER,
 
-    AT, EQUAL, DOLLAR,
+    AT, EQUAL, DOLLAR, DOT,
 
     LBRACE, RBRACE,
     LPAREN, RPAREN,
@@ -172,6 +170,7 @@ class Lexer(private val input: String) {
                         ']' -> TokenType.RARR
                         ':' -> TokenType.COLON
                         ',' -> TokenType.COMMA
+                        '.' -> TokenType.DOT
                         '@' -> TokenType.AT
                         '=' -> TokenType.EQUAL
                         '$' -> TokenType.DOLLAR

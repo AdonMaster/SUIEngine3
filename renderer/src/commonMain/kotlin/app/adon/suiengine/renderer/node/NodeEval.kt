@@ -21,11 +21,16 @@ fun Node.eval(
 
         // var
         is Node.Var -> {
-            if (!seen.add(self.name)) {
+            val pathKey = self.path.joinToString(".")
+            if (!seen.add(pathKey)) {
                 context.raise("eval: Referencia circular [${seen.joinToString(", ")}]")
                 Node.Null
             } else {
-                context.retrieveState(self.name).eval(context, seen)
+                try {
+                    context.retrieveState(self.path).eval(context, seen)
+                } finally {
+                    seen.remove(pathKey)
+                }
             }
         }
 

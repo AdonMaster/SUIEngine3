@@ -1,6 +1,7 @@
 package app.adon.suiengine.renderer.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -8,6 +9,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.adon.suiengine.ast.Node
@@ -18,6 +22,7 @@ import app.adon.suiengine.renderer.node.evalAs
 import app.adon.suiengine.renderer.node.evalAsInt
 import app.adon.suiengine.renderer.utils.coalesce
 
+@Composable
 fun extractModifier(params: List<Node.Param>, context: Context): Modifier {
     var mod: Modifier = Modifier
     for (p in params) {
@@ -57,10 +62,10 @@ fun extractModifier(params: List<Node.Param>, context: Context): Modifier {
                 "fill" -> {
                     mod.fillMaxSize()
                 }
-                "fill_w" -> {
+                "w_fill" -> {
                     mod.fillMaxWidth(p.value.evalAs<Node.Real>(context)?.v ?: 1f)
                 }
-                "fill_h" -> {
+                "h_fill" -> {
                     mod.fillMaxHeight(p.value.evalAs<Node.Real>(context)?.v ?: 1f)
                 }
                 "size" -> {
@@ -99,6 +104,17 @@ fun extractModifier(params: List<Node.Param>, context: Context): Modifier {
         }
             .onFailure { context.raise(it.message!!) }
             .getOrDefault(mod)
+
+        // composable outside try catch
+        mod = when (p.name) {
+            "v_scroll" -> {
+                mod.verticalScroll(rememberScrollState())
+            }
+            "h_scroll" -> {
+                mod.horizontalScroll(rememberScrollState())
+            }
+            else -> mod
+        }
     }
     return mod
 }

@@ -83,6 +83,7 @@ fun String?.toDp(def: Int=0) = (this?.toIntOrNull() ?: def).dp
 val String.toHorizontalAlignment: Alignment.Horizontal?
     get() = when (this.toAlignment) {
         Alignment.TopStart, Alignment.CenterStart, Alignment.BottomStart -> Alignment.Start
+        Alignment.TopCenter, Alignment.Center, Alignment.BottomCenter -> Alignment.CenterHorizontally
         Alignment.TopEnd, Alignment.CenterEnd, Alignment.BottomEnd -> Alignment.End
         else -> null
     }
@@ -91,6 +92,7 @@ val String.toHorizontalAlignment: Alignment.Horizontal?
 val String.toVerticalAlignment: Alignment.Vertical?
     get() = when (this.toAlignment) {
         Alignment.TopStart, Alignment.TopCenter, Alignment.TopEnd -> Alignment.Top
+        Alignment.CenterStart, Alignment.Center, Alignment.CenterEnd -> Alignment.CenterVertically
         Alignment.BottomStart, Alignment.BottomCenter, Alignment.BottomEnd -> Alignment.Bottom
         else -> null
     }
