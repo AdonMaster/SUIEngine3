@@ -23,13 +23,18 @@ object EvalRegistry {
                 ?: throw Exception("range requires max integer")
             val list = (min..max).map { Node.Integer(it) }
             Node.Arr(list)
+        },
+        "array_len" to { fn: Node.Fn, context: Context, seen: MutableSet<String> ->
+            val arr = fn.params.firstOrNull()?.value?.evalAs<Node.Arr>(context, seen)
+                ?: throw RuntimeException("array_len requires an array as only parameter")
+            Node.Integer(arr.v.size)
         }
     )
 
     fun execute(fn: Node.Fn, context: Context, seen: MutableSet<String>): Node {
         return runCatching {
             val allRegistries = localRegistry + evalRegistryConvert +
-                    evalRegistryMath + evalRegistryLogic
+                    evalRegistryMath + evalRegistryLogic + evalRegistryLayout
             val caller = allRegistries[fn.name]
                 ?: throw Exception("eval function [${fn.name}] não encontrado.")
             return caller.invoke(fn, context, seen)

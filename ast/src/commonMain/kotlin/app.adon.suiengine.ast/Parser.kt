@@ -103,20 +103,30 @@ class Parser(private val tokens: List<Token>) {
             }
             TokenType.DOLLAR -> {
                 advance() // consume o $
-                val path = mutableListOf<String>()
+                val segments = mutableListOf<NodePathSegment>()
 
-                // Pega o primeiro identificador obrigatório
+                // Pega o identificador raiz obrigatório
                 val firstId = consume(TokenType.IDENTIFIER, "Esperado o nome da variável após '$' na linha ${token.line}")
-                path.add(firstId.value)
+                segments.add(NodePathSegment.Property(firstId.value))
 
-                // Enquanto o próximo token for um ponto, continua acumulando as propriedades
-                while (check(TokenType.DOT)) {
-                    advance() // consume o .
-                    val nextId = consume(TokenType.IDENTIFIER, "Esperado o nome da propriedade após '.' na linha ${token.line}")
-                    path.add(nextId.value)
+                // Fica em loop consumindo .propriedade ou [indice] em qualquer ordem
+                while (true) {
+                    if (match(TokenType.DOT)) {
+                        val propToken = consume(TokenType.IDENTIFIER, "Esperado o nome da propriedade após '.'")
+                        segments.add(NodePathSegment.Property(propToken.value))
+                    }
+                    else if (check(TokenType.LARR)) { // [
+                        advance() // consume o [
+                        val indexNode = parseExpression() // Permite usar número fixo [0] ou variável [$index]!
+                        consume(TokenType.RARR, "Esperado ']' para fechar o índice do array")
+                        segments.add(NodePathSegment.Index(indexNode))
+                    }
+                    else {
+                        break
+                    }
                 }
 
-                Node.Var(path)
+                Node.Var(segments)
             }
             TokenType.IDENTIFIER -> {
                 val name = advance().value

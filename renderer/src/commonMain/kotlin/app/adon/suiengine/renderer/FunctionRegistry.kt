@@ -1,14 +1,18 @@
 package app.adon.suiengine.renderer
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +22,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.events.EventFilter
@@ -40,6 +45,7 @@ import app.adon.suiengine.renderer.ui.toTextAlign
 import app.adon.suiengine.renderer.ui.toTextOverflow
 import app.adon.suiengine.renderer.ui.toVerticalAlignment
 import app.adon.suiengine.renderer.ui.toVerticalArrangement
+import app.adon.suiengine.renderer.utils.coalesce
 
 
 typealias FnRenderer = @Composable (Node.Fn, Context) -> Unit
@@ -187,20 +193,24 @@ object FunctionRegistry {
         "text" to { node, context ->
             // params
             val paramSolver = NodeParamSolver(node.params, listOf(
-                "text", "style", "text_align", "color", "font_size", "line_height", "overflow", "font_weight", "font_style"
+                "text", "size", "style", "text_align", "color", "font_size", "line_height", "overflow", "font_weight", "font_style"
             ))
             val sText = paramSolver.get("text")?.evalAsStrValue(context) ?: ""
             val style: TextStyle = paramSolver.get("style")?.evalAsStrValue(context)?.toM3Style ?: LocalTextStyle.current
             val textAlign = paramSolver.get("text_align")?.evalAsStrValue(context)?.toTextAlign
             val fontStyle: FontStyle? = if (paramSolver.get("font_style")?.evalAsStrValue(context) == "italic") FontStyle.Italic else null
             val color = paramSolver.get("color")?.evalAsStrValue(context)?.toColor() ?: Color.Unspecified
-            val fontSize = paramSolver.get("font_size")?.evalAsInt(context)?.v?.sp ?: TextUnit.Unspecified
+            val fontSize = coalesce(
+                paramSolver.get("font_size")?.evalAsStrValue(context)?.toFloatOrNull()?.sp,
+                paramSolver.get("size")?.evalAsStrValue(context)?.toFloatOrNull()?.sp,
+                def = TextUnit.Unspecified,
+            )
             val lineHeight = paramSolver.get("line_height")?.evalAsInt(context)?.v?.sp ?: TextUnit.Unspecified
             val overflow = paramSolver.get("overflow")?.evalAsStrValue(context)?.toTextOverflow ?: TextOverflow.Clip
             val weight = paramSolver.get("font_weight")?.evalAsStrValue(context)?.toFontWeight
 
             //
-            val mod = extractModifier(node.params, context)
+            val mod = extractModifier(node.params, context, ignoreList = setOf("size"))
             Text(
                 text = sText, modifier = mod, fontStyle = fontStyle, textAlign = textAlign,
                 color = color, fontSize = fontSize, lineHeight = lineHeight, overflow = overflow,
@@ -220,6 +230,37 @@ object FunctionRegistry {
                 if (textValue != null) {
                     Text(textValue)
                 }
+                InvokeGroup(node.children, context.newChild(node.name))
+            }
+        },
+
+        "surface" to { node, context ->
+            var mod = extractModifier(node.params, context, ignoreList = setOf("background"))
+            val paramSolver = node.paramSolver(
+                "corner_radius", "background", "foreground",
+                "elevation", "clickable"
+            )
+            val cornerRadius = paramSolver.get("corner_radius")?.evalAsInt(context)?.v ?: 8
+            val shape = RoundedCornerShape(cornerRadius.dp)
+            val foreground = paramSolver.get("foreground")?.evalAsStrValue(context)?.toColor()
+                ?: MaterialTheme.colorScheme.onSurface
+            val background = paramSolver.get("background")?.evalAsStrValue(context)?.toColor()
+                ?: MaterialTheme.colorScheme.surface
+            val elevation = paramSolver.get("elevation")?.evalAsInt(context)?.v ?: 0
+            val clickable = paramSolver.get("clickable")?.evalAsBool(context)?.v ?: false
+
+            // clickable
+            mod = mod.clickable(clickable) {
+                EventRegistry.trigger(EventFilter.TOUCH, node, context)
+            }
+
+            Surface(
+                modifier = mod,
+                shape = shape,
+                contentColor = foreground,
+                color = background,
+                shadowElevation = elevation.dp
+            ) {
                 InvokeGroup(node.children, context.newChild(node.name))
             }
         }

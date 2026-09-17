@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import app.adon.suiengine.ast.Node
+import app.adon.suiengine.ast.NodePathSegment
 import app.adon.suiengine.renderer.extensions.upwards
+import app.adon.suiengine.renderer.StateStore
+import app.adon.suiengine.renderer.node.evalAsInt
 import app.adon.suiengine.renderer.ui.LayoutScope
 
 class Context(
@@ -13,7 +16,7 @@ class Context(
 
     // error
     fun raise(reason: String) {
-        val stack = mutableListOf<String>("error: $reason")
+        val stack = mutableListOf("error: $reason")
         upwards { stack.add("from: ${it.name}") }
         vm.setErrors(stack)
     }
@@ -64,25 +67,16 @@ class Context(
         vm.setState(stableKey, value)
     }
 
-    private fun findStableKey(key: String): String? {
+    fun findStableKey(key: String): String? {
         return stateBinding[key] ?: parent?.findStableKey(key)
     }
 
-    fun retrieveState(path: List<String>): Node
-    {
-        if (path.isEmpty()) return Node.Null
-        val rootKey = path.first()
-
-        // search for virtual first
-        retrieveVirtualState(rootKey)?.let { return it }
-
-        // then it checks viewmodel state
-        val stableKey = findStableKey(rootKey)
-        if (stableKey != null) return vm.states[stableKey] ?: Node.Null
-        // fail
-        raise("state [$rootKey] not found")
-        return Node.Null
-    }
+    val stateStore = StateStore(this)
+    fun retrieveState(path: List<NodePathSegment>) = runCatching {
+            stateStore.retrieveState(path)
+        }
+            .onFailure { raise(it.message!!) }
+            .getOrDefault(Node.Null)
 
 
     // virtual state
@@ -91,7 +85,7 @@ class Context(
         virtualStore[key] = value
     }
 
-    private fun retrieveVirtualState(key: String): Node? {
+    fun retrieveVirtualState(key: String): Node? {
         return virtualStore[key] ?: parent?.retrieveVirtualState(key)
     }
 }

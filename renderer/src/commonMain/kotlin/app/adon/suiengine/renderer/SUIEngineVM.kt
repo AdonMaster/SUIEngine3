@@ -13,7 +13,11 @@ class SUIEngineVM: ViewModel() {
     private val _errors = MutableStateFlow(emptyList<String>())
     val errors = _errors.asStateFlow()
     fun setErrors(list: List<String>) {
-        _errors.value = list
+        if (list.isEmpty()) {
+            _errors.value = emptyList()
+        } else {
+            _errors.value = list + _errors.value
+        }
     }
 
     private val _states = mutableStateMapOf<String, Node>()

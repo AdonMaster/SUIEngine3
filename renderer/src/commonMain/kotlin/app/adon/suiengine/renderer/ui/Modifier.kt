@@ -23,10 +23,13 @@ import app.adon.suiengine.renderer.node.evalAsInt
 import app.adon.suiengine.renderer.utils.coalesce
 
 @Composable
-fun extractModifier(params: List<Node.Param>, context: Context): Modifier {
+fun extractModifier(
+    params: List<Node.Param>, context: Context, ignoreList: Set<String> = setOf()
+): Modifier {
     var mod: Modifier = Modifier
-    for (p in params) {
+    loop@ for (p in params) {
         mod = runCatching {
+            if (ignoreList.contains(p.name)) continue@loop
             when (p.name) {
                 "weight" -> {
                     val f = p.value.evalAs<Node.Real>(context) ?: throw Exception("weight aceita apenas float")

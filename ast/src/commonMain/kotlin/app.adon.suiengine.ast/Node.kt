@@ -2,6 +2,10 @@ package app.adon.suiengine.ast
 
 import com.benasher44.uuid.uuid4
 
+sealed class NodePathSegment {
+    data class Property(val name: String) : NodePathSegment()
+    data class Index(val indexNode: Node) : NodePathSegment()
+}
 sealed class Node {
 
     val uid: String = uuid4().toString()
@@ -17,7 +21,7 @@ sealed class Node {
 
     data class Fn(val name: String, val params: List<Param>, val children: List<Node>): Node()
     data class Param(val name: String?, val value: Node): Node()
-    data class Var(val path: List<String>): Node()
+    data class Var(val path: List<NodePathSegment>): Node()
 
     fun stringableVal(): String = when (this) {
         is Str -> this.v
