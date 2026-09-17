@@ -6,10 +6,10 @@ import app.adon.suiengine.renderer.extensions.register
 
 val evalRegistryLayout = buildMap {
     register("is_dark") { fn: Node.Fn, context: Context, seen: MutableSet<String> ->
-        val hexColorNode = fn.params.firstOrNull()?.value?.evalAs<Node.Str>(context, seen)
+        val hexColor = fn.params.firstOrNull()?.resolveValStr(context, seen)
             ?: throw RuntimeException("is_dark requer uma string de cor hex (ex: '0F172A')")
 
-        val hex = hexColorNode.v.removePrefix("#")
+        val hex = hexColor.removePrefix("#")
         val colorInt = hex.toLongOrNull(16) ?: 0L
 
         // Extrai RGB e calcula luminância percebida simples

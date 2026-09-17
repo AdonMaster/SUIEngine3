@@ -8,10 +8,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,16 +27,16 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.adon.suiengine.ast.Node
-import app.adon.suiengine.renderer.events.EventFilter
-import app.adon.suiengine.renderer.events.EventRegistry
+import app.adon.suiengine.renderer.extensions.register
 import app.adon.suiengine.renderer.extensions.toColor
+import app.adon.suiengine.renderer.node.InvokeRegistry
+import app.adon.suiengine.renderer.node.NodeEvaluatorFnNotFound
 import app.adon.suiengine.renderer.node.NodeParamSolver
-import app.adon.suiengine.renderer.node.eval
-import app.adon.suiengine.renderer.node.evalAs
-import app.adon.suiengine.renderer.node.evalAsBool
-import app.adon.suiengine.renderer.node.evalAsInt
-import app.adon.suiengine.renderer.node.evalAsStrValue
 import app.adon.suiengine.renderer.node.paramSolver
+import app.adon.suiengine.renderer.node.resolve
+import app.adon.suiengine.renderer.node.resolveValBool
+import app.adon.suiengine.renderer.node.resolveValInt
+import app.adon.suiengine.renderer.node.resolveValStr
 import app.adon.suiengine.renderer.ui.extractModifier
 import app.adon.suiengine.renderer.ui.toAlignment
 import app.adon.suiengine.renderer.ui.toFontWeight
@@ -63,21 +65,39 @@ object FunctionRegistry {
         }
     }
 
-    private val renderers = mapOf<String, FnRenderer>(
+    private val renderers = buildMap<String, FnRenderer> {
 
-        "@state" to { node, context ->
+        register("@state", "@declare") { node: Node.Fn, context: Context ->
             node.params.forEach { param ->
                 context.initialState(node.uid, param.name, param.value)
             }
-        },
+        }
 
-        "@on" to { _, _ ->
-            //ignored @see EventRegistry
-        },
+        register("@render") { callerNode: Node.Fn, context: Context ->
+            val componentNode = callerNode.paramSolver("component").get("component")
+            if (componentNode == null) {
+                context.raise("@render requires a component as param")
+            } else {
+                val fnNode = try {
+                     componentNode.resolve(context)
+                } catch (e: NodeEvaluatorFnNotFound) {
+                    e.fn
+                }
+                if (fnNode !is Node.Fn) {
+                    context.raise("@render must resolve to a function [${fnNode.stringableVal()}]")
+                } else {
+                    val renderContext = context.newChild("render")
+                    callerNode.params.filter { it.name != "component" && it.name != null }.forEach { param ->
+                        renderContext.setVirtual(param.name!!, param.value)
+                    }
+                    InvokeGroup(listOf(fnNode), renderContext)
+                }
+            }
+        }
 
-        "@if" to { node, context ->
+        register("@if") { node: Node.Fn, context: Context ->
             val render = runCatching {
-                node.paramSolver("val").get("val")?.evalAsBool(context)?.v
+                node.paramSolver("val").get("val")?.resolveValBool(context)
                     ?: throw Exception("@if param == bool")
             }.onFailure {
                 context.raise(it.message!!)
@@ -86,13 +106,13 @@ object FunctionRegistry {
             if (render) {
                 InvokeGroup(node.children, context.newChild(node.name))
             }
-        },
-        "@foreach" to { node, context ->
+        }
+        register("@foreach") { node: Node.Fn, context: Context ->
             val paramSolver = node.paramSolver("items", "as")
-            val arrayNode = paramSolver.get("items")?.evalAs<Node.Arr>(context)
+            val arrayNode = paramSolver.get("items")?.resolve(context) as? Node.Arr
 
             if (arrayNode != null) {
-                val asName = paramSolver.get("as")?.evalAsStrValue(context) ?: "it"
+                val asName = paramSolver.get("as")?.resolveValStr(context) ?: "it"
                 arrayNode.v.forEachIndexed { index, itemValue ->
                     val loopContext = context.newChild(node.name)
                     loopContext.setVirtual(asName, itemValue)
@@ -103,17 +123,13 @@ object FunctionRegistry {
             } else {
                 context.raise("@foreach requires an array parameter")
             }
-        },
+        }
 
-        "@set" to { node, context ->
-
-        },
-
-        "box" to { node, context ->
+        register("box") { node: Node.Fn, context: Context ->
             val mod = extractModifier(node.params, context)
             val paramSolver = NodeParamSolver(node.params, listOf("content_align"))
             val contentAlign = paramSolver.get("content_align")
-                ?.eval(context)?.stringableVal()?.toAlignment
+                ?.resolveValStr(context)?.toAlignment
                 ?: Alignment.TopStart
             Box(modifier = mod, contentAlignment = contentAlign) {
                 InvokeGroup(
@@ -121,13 +137,16 @@ object FunctionRegistry {
                     context = context.newChild(node.name).withLayoutScope(this)
                 )
             }
-        },
+        }
 
-        "col" to { node, context ->
+        register("col") { node: Node.Fn, context: Context ->
             val mod = extractModifier(node.params, context)
             val paramSolver = NodeParamSolver(node.params, listOf("v_arrange", "h_align"))
-            val vArrangement = paramSolver.get("v_arrange")?.evalAsStrValue(context)?.toVerticalArrangement ?: Arrangement.Top
-            val hAlign = paramSolver.get("h_align")?.evalAsStrValue(context)?.toHorizontalAlignment ?: Alignment.Start
+            val vArrangement =
+                paramSolver.get("v_arrange")?.resolveValStr(context)?.toVerticalArrangement
+                    ?: Arrangement.Top
+            val hAlign = paramSolver.get("h_align")?.resolveValStr(context)?.toHorizontalAlignment
+                ?: Alignment.Start
 
             Column(
                 modifier = mod,
@@ -139,17 +158,21 @@ object FunctionRegistry {
                     context = context.newChild(node.name).withLayoutScope(this)
                 )
             }
-        },
+        }
 
-        "lazy_col" to { node, context ->
+        register("lazy_col") { node: Node.Fn, context: Context ->
             val paramSolver = node.paramSolver("items", "as", "v_arrange", "h_align")
-            val array = paramSolver.get("items")?.evalAs<Node.Arr>(context)
+            val array = paramSolver.get("items")?.resolve(context) as? Node.Arr
             if (array == null) {
                 context.raise("lazy_col requires 'items' param of type array")
             } else {
-                val vArrangement = paramSolver.get("v_arrange")?.evalAsStrValue(context)?.toVerticalArrangement ?: Arrangement.Top
-                val hAlign = paramSolver.get("h_align")?.evalAsStrValue(context)?.toHorizontalAlignment ?: Alignment.Start
-                val asName = paramSolver.get("as")?.evalAsStrValue(context) ?: "it"
+                val vArrangement =
+                    paramSolver.get("v_arrange")?.resolveValStr(context)?.toVerticalArrangement
+                        ?: Arrangement.Top
+                val hAlign =
+                    paramSolver.get("h_align")?.resolveValStr(context)?.toHorizontalAlignment
+                        ?: Alignment.Start
+                val asName = paramSolver.get("as")?.resolveValStr(context) ?: "it"
                 LazyColumn(
                     modifier = extractModifier(node.params, context),
                     verticalArrangement = vArrangement,
@@ -163,12 +186,15 @@ object FunctionRegistry {
                     }
                 }
             }
-        },
+        }
 
-        "row" to { node, context ->
+        register("row") { node: Node.Fn, context: Context ->
             val paramSolver = NodeParamSolver(node.params, listOf("h_arrange", "h_align"))
-            val hArrangement = paramSolver.get("h_arrange")?.evalAsStrValue(context)?.toHorizontalArrangement ?: Arrangement.Start
-            val vAlign = paramSolver.get("h_align")?.evalAsStrValue(context)?.toVerticalAlignment ?: Alignment.Top
+            val hArrangement =
+                paramSolver.get("h_arrange")?.resolveValStr(context)?.toHorizontalArrangement
+                    ?: Arrangement.Start
+            val vAlign = paramSolver.get("h_align")?.resolveValStr(context)?.toVerticalAlignment
+                ?: Alignment.Top
             val mod = extractModifier(node.params, context)
             Row(
                 modifier = mod,
@@ -180,34 +206,43 @@ object FunctionRegistry {
                     context = context.newChild(node.name).withLayoutScope(this)
                 )
             }
-        },
+        }
 
-        "spacer" to { node, context ->
+        register("spacer") { node: Node.Fn, context: Context ->
             Spacer(modifier = extractModifier(node.params, context))
-        },
+        }
 
-        "divider" to { node, context ->
+        register("divider") { node: Node.Fn, context: Context ->
             HorizontalDivider(modifier = Modifier)
-        },
+        }
 
-        "text" to { node, context ->
+        register("text") { node: Node.Fn, context: Context ->
             // params
-            val paramSolver = NodeParamSolver(node.params, listOf(
-                "text", "size", "style", "text_align", "color", "font_size", "line_height", "overflow", "font_weight", "font_style"
-            ))
-            val sText = paramSolver.get("text")?.evalAsStrValue(context) ?: ""
-            val style: TextStyle = paramSolver.get("style")?.evalAsStrValue(context)?.toM3Style ?: LocalTextStyle.current
-            val textAlign = paramSolver.get("text_align")?.evalAsStrValue(context)?.toTextAlign
-            val fontStyle: FontStyle? = if (paramSolver.get("font_style")?.evalAsStrValue(context) == "italic") FontStyle.Italic else null
-            val color = paramSolver.get("color")?.evalAsStrValue(context)?.toColor() ?: Color.Unspecified
+            val paramSolver = NodeParamSolver(
+                node.params, listOf(
+                    "text", "size", "style", "text_align", "color", "font_size", "line_height",
+                    "overflow", "font_weight", "font_style"
+                )
+            )
+            val sText = paramSolver.get("text")?.resolveValStr(context) ?: ""
+            val style: TextStyle = paramSolver.get("style")?.resolveValStr(context)?.toM3Style
+                ?: LocalTextStyle.current
+            val textAlign = paramSolver.get("text_align")?.resolveValStr(context)?.toTextAlign
+            val fontStyle: FontStyle? = if (paramSolver.get("font_style")
+                    ?.resolveValStr(context) == "italic"
+            ) FontStyle.Italic else null
+            val color =
+                paramSolver.get("color")?.resolveValStr(context)?.toColor() ?: Color.Unspecified
             val fontSize = coalesce(
-                paramSolver.get("font_size")?.evalAsStrValue(context)?.toFloatOrNull()?.sp,
-                paramSolver.get("size")?.evalAsStrValue(context)?.toFloatOrNull()?.sp,
+                paramSolver.get("font_size")?.resolveValStr(context)?.toFloatOrNull()?.sp,
+                paramSolver.get("size")?.resolveValStr(context)?.toFloatOrNull()?.sp,
                 def = TextUnit.Unspecified,
             )
-            val lineHeight = paramSolver.get("line_height")?.evalAsInt(context)?.v?.sp ?: TextUnit.Unspecified
-            val overflow = paramSolver.get("overflow")?.evalAsStrValue(context)?.toTextOverflow ?: TextOverflow.Clip
-            val weight = paramSolver.get("font_weight")?.evalAsStrValue(context)?.toFontWeight
+            val lineHeight =
+                paramSolver.get("line_height")?.resolveValInt(context)?.sp ?: TextUnit.Unspecified
+            val overflow = paramSolver.get("overflow")?.resolveValStr(context)?.toTextOverflow
+                ?: TextOverflow.Clip
+            val weight = paramSolver.get("font_weight")?.resolveValStr(context)?.toFontWeight
 
             //
             val mod = extractModifier(node.params, context, ignoreList = setOf("size"))
@@ -216,42 +251,41 @@ object FunctionRegistry {
                 color = color, fontSize = fontSize, lineHeight = lineHeight, overflow = overflow,
                 fontWeight = weight, style = style
             )
-        },
+        }
 
-        "btn" to { node, context ->
-            val paramSolver = NodeParamSolver(node.params, listOf("text"))
-            val textValue = paramSolver.get("text")?.eval(context)?.stringableVal()
+        register("btn") { node: Node.Fn, context: Context ->
+            val paramSolver = NodeParamSolver(node.params, listOf("text", "on_touch"))
+            val textValue = paramSolver.get("text")?.resolveValStr(context)
+            val onTouch = paramSolver.get("on_touch")
             Button(
                 modifier = extractModifier(node.params, context),
-                onClick = {
-                    EventRegistry.trigger(EventFilter.TOUCH, node, context)
-                }
+                onClick = { InvokeRegistry.trigger(onTouch, context) }
             ) {
                 if (textValue != null) {
                     Text(textValue)
                 }
                 InvokeGroup(node.children, context.newChild(node.name))
             }
-        },
+        }
 
-        "surface" to { node, context ->
+        register("surface") { node: Node.Fn, context: Context ->
             var mod = extractModifier(node.params, context, ignoreList = setOf("background"))
             val paramSolver = node.paramSolver(
-                "corner_radius", "background", "foreground",
+                "corner_radius", "background", "foreground", "on_touch",
                 "elevation", "clickable"
             )
-            val cornerRadius = paramSolver.get("corner_radius")?.evalAsInt(context)?.v ?: 8
+            val cornerRadius = paramSolver.get("corner_radius")?.resolveValInt(context) ?: 8
             val shape = RoundedCornerShape(cornerRadius.dp)
-            val foreground = paramSolver.get("foreground")?.evalAsStrValue(context)?.toColor()
+            val foreground = paramSolver.get("foreground")?.resolveValStr(context)?.toColor()
                 ?: MaterialTheme.colorScheme.onSurface
-            val background = paramSolver.get("background")?.evalAsStrValue(context)?.toColor()
+            val background = paramSolver.get("background")?.resolveValStr(context)?.toColor()
                 ?: MaterialTheme.colorScheme.surface
-            val elevation = paramSolver.get("elevation")?.evalAsInt(context)?.v ?: 0
-            val clickable = paramSolver.get("clickable")?.evalAsBool(context)?.v ?: false
+            val elevation = paramSolver.get("elevation")?.resolveValInt(context) ?: 0
+            val onTouch = paramSolver.get("on_touch")
 
             // clickable
-            mod = mod.clickable(clickable) {
-                EventRegistry.trigger(EventFilter.TOUCH, node, context)
+            mod = mod.clickable(onTouch != null) {
+                InvokeRegistry.trigger(onTouch, context)
             }
 
             Surface(
@@ -264,6 +298,22 @@ object FunctionRegistry {
                 InvokeGroup(node.children, context.newChild(node.name))
             }
         }
-    )
+
+        register("textfield") { node: Node.Fn, context: Context ->
+            val textState = rememberTextFieldState(initialText = "")
+            var mod = extractModifier(node.params, context, ignoreList = setOf())
+
+            val paramSolver = node.paramSolver("label", "ph")
+            val label = paramSolver.get("label")?.resolveValStr(context)
+            val ph = paramSolver.get("ph")?.resolveValStr(context)
+
+            OutlinedTextField(
+                modifier = mod,
+                state = textState,
+                placeholder = ph?.let { { Text(ph) } },
+                label = label?.let {{ Text(label) }}
+            )
+        }
+    }
 
 }

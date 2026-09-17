@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.RowScope
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.NodePathSegment
 import app.adon.suiengine.renderer.extensions.upwards
-import app.adon.suiengine.renderer.StateStore
-import app.adon.suiengine.renderer.node.evalAsInt
 import app.adon.suiengine.renderer.ui.LayoutScope
 
 class Context(
@@ -53,14 +51,6 @@ class Context(
         }
     }
 
-    fun safeStoreState(key: String?, value: Node) {
-        runCatching {
-            unsafeStoreState(key, value)
-        }.onFailure {
-            raise(it.message!!)
-        }
-    }
-
     fun unsafeStoreState(key: String?, value: Node) {
         if (key == null) throw Exception("store state should have a name")
         val stableKey = findStableKey(key) ?: throw Exception("state [$key] not found")
@@ -72,8 +62,9 @@ class Context(
     }
 
     val stateStore = StateStore(this)
+    fun unsafeRetrieveState(path: List<NodePathSegment>) = stateStore.retrieveState(path)
     fun retrieveState(path: List<NodePathSegment>) = runCatching {
-            stateStore.retrieveState(path)
+            unsafeRetrieveState(path)
         }
             .onFailure { raise(it.message!!) }
             .getOrDefault(Node.Null)

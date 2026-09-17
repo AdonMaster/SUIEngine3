@@ -17,9 +17,10 @@ import androidx.compose.ui.unit.dp
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.Context
 import app.adon.suiengine.renderer.extensions.toColor
-import app.adon.suiengine.renderer.node.eval
-import app.adon.suiengine.renderer.node.evalAs
-import app.adon.suiengine.renderer.node.evalAsInt
+import app.adon.suiengine.renderer.node.resolve
+import app.adon.suiengine.renderer.node.resolveValFloat
+import app.adon.suiengine.renderer.node.resolveValInt
+import app.adon.suiengine.renderer.node.resolveValStr
 import app.adon.suiengine.renderer.utils.coalesce
 
 @Composable
@@ -32,26 +33,26 @@ fun extractModifier(
             if (ignoreList.contains(p.name)) continue@loop
             when (p.name) {
                 "weight" -> {
-                    val f = p.value.evalAs<Node.Real>(context) ?: throw Exception("weight aceita apenas float")
+                    val f = p.value.resolveValFloat(context) ?: throw Exception("weight aceita apenas float")
                     coalesce(
-                        context.layoutScope?.whenCol { mod.weight(f.v) },
-                        context.layoutScope?.whenRow { mod.weight(f.v) },
+                        context.layoutScope?.whenCol { mod.weight(f) },
+                        context.layoutScope?.whenRow { mod.weight(f) },
                         def = mod
                     )
                 }
                 "align" -> {
-                    val alignStr = p.value.evalAs<Node.Str>(context) ?: throw Exception("align aceita apenas string")
+                    val alignStr = p.value.resolveValStr(context)
                     coalesce(
                         context.layoutScope?.whenCol {
-                            val a = alignStr.v.toHorizontalAlignment ?: throw Exception("col.align nao aceita: [$alignStr]")
+                            val a = alignStr.toHorizontalAlignment ?: throw Exception("col.align nao aceita: [$alignStr]")
                             mod.align(a)
                         },
                         context.layoutScope?.whenRow {
-                            val a = alignStr.v.toVerticalAlignment ?: throw Exception("row.align nao aceita: [$alignStr]")
+                            val a = alignStr.toVerticalAlignment ?: throw Exception("row.align nao aceita: [$alignStr]")
                             mod.align(a)
                         },
                         context.layoutScope?.whenBox {
-                            val a = alignStr.v.toAlignment ?: throw Exception("box.align nao aceita: [$alignStr]")
+                            val a = alignStr.toAlignment ?: throw Exception("box.align nao aceita: [$alignStr]")
                             mod.align(a)
                         },
                         def = mod
@@ -66,25 +67,25 @@ fun extractModifier(
                     mod.fillMaxSize()
                 }
                 "w_fill" -> {
-                    mod.fillMaxWidth(p.value.evalAs<Node.Real>(context)?.v ?: 1f)
+                    mod.fillMaxWidth(p.value.resolveValFloat(context) ?: 1f)
                 }
                 "h_fill" -> {
-                    mod.fillMaxHeight(p.value.evalAs<Node.Real>(context)?.v ?: 1f)
+                    mod.fillMaxHeight(p.value.resolveValFloat(context) ?: 1f)
                 }
                 "size" -> {
-                    val v = p.value.evalAsInt(context) ?: throw Exception("size requires int")
-                    mod.size(v.v.dp)
+                    val v = p.value.resolveValInt(context) ?: throw Exception("size requires int")
+                    mod.size(v.dp)
                 }
                 "w" -> {
-                    val v = p.value.evalAsInt(context) ?: throw Exception("size requires int")
-                    mod.width(v.v.dp)
+                    val v = p.value.resolveValInt(context) ?: throw Exception("size requires int")
+                    mod.width(v.dp)
                 }
                 "h" -> {
-                    val v = p.value.evalAsInt(context) ?: throw Exception("size requires int")
-                    mod.height(v.v.dp)
+                    val v = p.value.resolveValInt(context) ?: throw Exception("size requires int")
+                    mod.height(v.dp)
                 }
                 "padding" -> {
-                    val arr = when (val pvalue = p.value.eval(context)) {
+                    val arr = when (val pvalue = p.value.resolve(context)) {
                         is Node.Arr -> pvalue.v.map { a -> a.stringableVal() }
                         is Node.Integer -> listOf(pvalue.v.toString())
                         is Node.Str -> listOf(pvalue.v)
@@ -98,7 +99,7 @@ fun extractModifier(
                     }
                 }
                 "background" -> {
-                    val clStr = p.value.eval(context).stringableVal()
+                    val clStr = p.value.resolveValStr(context)
                     val cl = clStr.toColor() ?: throw Exception("[$clStr] não parece ser uma cor valida")
                     mod.background(cl)
                 }
