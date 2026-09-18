@@ -1,3 +1,38 @@
+@declare(
+    parent_form = {}
+    sub_form = {}
+)
+
+@form() {
+    col() {
+        textfield("company")
+
+        @form(
+            validation = {
+                nome: [required(), min(5)],
+                email: [required(), email()]
+            },
+            on_submit = @set($sub_form, @fields())
+        ) {
+            col(fill = 1, v_arrange = "center", h_align = "center") {
+                textfield("nome")
+                textfield("email")
+                btn("submit", on_touch = @submit())
+                btn("reset", on_touch = @reset())
+            }
+        }
+
+        text($parent_form)
+        text($sub_form)
+
+        btn("submit", on_touch = @submit())
+        btn("reset", on_touch = @reset())
+    }
+}
+
+
+
+/*
 @declare(base_button = btn($label, on_touch = $on_touch))
 @declare(my_button = $base_button)
 

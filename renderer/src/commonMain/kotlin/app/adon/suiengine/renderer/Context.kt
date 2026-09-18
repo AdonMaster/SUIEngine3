@@ -3,12 +3,14 @@ package app.adon.suiengine.renderer
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.text.input.TextFieldState
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.NodePathSegment
+import app.adon.suiengine.renderer.extensions.closestInstance
 import app.adon.suiengine.renderer.extensions.upwards
 import app.adon.suiengine.renderer.ui.LayoutScope
 
-class Context(
+open class Context(
     val name: String, val parent: Context?, val vm: SUIEngineVM
 ) {
 
@@ -26,6 +28,9 @@ class Context(
             parent = this,
             vm = vm
         )
+    }
+    fun newFormChild(name: String): FormContext {
+        return FormContext(name = name, parent = this, vm = vm)
     }
 
     // layout scope
@@ -78,5 +83,15 @@ class Context(
 
     fun retrieveVirtualState(key: String): Node? {
         return virtualStore[key] ?: parent?.retrieveVirtualState(key)
+    }
+
+    // textfield state
+    fun registerTextField(name: String, state: TextFieldState) {
+        val formContext = this.closestInstance<FormContext>()
+            ?: run {
+                raise("textfield [${name}] is not in @form boundary")
+                return
+            }
+        formContext.addField(name, state)
     }
 }

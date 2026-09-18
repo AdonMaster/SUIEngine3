@@ -9,3 +9,12 @@ fun Context.upwards(cb: (Context)-> Boolean) {
         current = current.parent
     }
 }
+
+inline fun <reified T : Context> Context.closestInstance(): T? {
+    var current: Context? = this
+    while (current != null) {
+        if (current is T) return current
+        current = current.parent
+    }
+    return null
+}

@@ -8,7 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
@@ -17,6 +17,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -299,19 +301,37 @@ object FunctionRegistry {
             }
         }
 
-        register("textfield") { node: Node.Fn, context: Context ->
-            val textState = rememberTextFieldState(initialText = "")
-            var mod = extractModifier(node.params, context, ignoreList = setOf())
+        register("@form") { node: Node.Fn, context: Context ->
+            val formContext = context.newFormChild("render")
+            InvokeGroup(node.children, formContext)
+        }
 
-            val paramSolver = node.paramSolver("label", "ph")
+        register("textfield") { node: Node.Fn, context: Context ->
+            val paramSolver = node.paramSolver("name", "text", "label", "ph")
+            var mod = extractModifier(node.params, context)
+
+            val name = paramSolver.get("name")?.resolveValStr(context)
+                ?: run {
+                    context.raise("textfield requer o parametro 'name'")
+                    return@register
+                }
             val label = paramSolver.get("label")?.resolveValStr(context)
             val ph = paramSolver.get("ph")?.resolveValStr(context)
+            val txtValue = paramSolver.get("text")?.stringableVal() ?: ""
 
+            //
+            val textState = remember { TextFieldState(initialText = txtValue) }
+            DisposableEffect(name, textState) {
+                context.registerTextField(name, textState)
+                onDispose { /*cleanup*/ }
+            }
+
+            //
             OutlinedTextField(
                 modifier = mod,
                 state = textState,
                 placeholder = ph?.let { { Text(ph) } },
-                label = label?.let {{ Text(label) }}
+                label = label?.let { { Text(label) } }
             )
         }
     }

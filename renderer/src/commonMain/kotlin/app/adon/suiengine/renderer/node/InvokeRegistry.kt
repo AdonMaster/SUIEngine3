@@ -14,8 +14,6 @@ object InvokeRegistry {
         }
     }
 
-    private val passThroughSet = setOf("@set")
-
     //
     private fun triggerNode(n: Node, context: Context, seen: MutableSet<String> = mutableSetOf()) {
         val fnNode = try {

@@ -30,10 +30,10 @@ sealed class Node {
         is Bool -> this.v.toString()
         Null -> ""
 
-        is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringableVal() ?: "null" }
+        is Arr -> v.joinToString(prefix = "[", postfix = "]") { it.stringableVal() }
         is Dict -> v.entries.joinToString(prefix = "{", postfix = "}") { "${it.key}: ${it.value.stringableVal()}" }
         is Param -> "param ($name = ${value.stringableVal()})"
-        is Fn -> "fn $name(${params.joinToString { it.stringableVal() ?: "" }})"
+        is Fn -> "fn $name(${params.joinToString { it.stringableVal() }})"
         is Var -> this.path.joinToString(".")
     }
 }
