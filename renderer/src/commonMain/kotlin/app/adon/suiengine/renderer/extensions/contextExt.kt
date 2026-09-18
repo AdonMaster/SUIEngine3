@@ -10,10 +10,10 @@ fun Context.upwards(cb: (Context)-> Boolean) {
     }
 }
 
-inline fun <reified T : Context> Context.closestInstance(): T? {
+inline fun <reified T : Context> Context.closestInstance(predicate: (T)-> Boolean = { true }): T? {
     var current: Context? = this
     while (current != null) {
-        if (current is T) return current
+        if (current is T && predicate(current)) return current
         current = current.parent
     }
     return null

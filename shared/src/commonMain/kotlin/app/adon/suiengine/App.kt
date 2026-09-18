@@ -20,6 +20,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import app.adon.suiengine.data.DataState
 import app.adon.suiengine.renderer.SUIEngine
 import suiengine.shared.generated.resources.Res
@@ -27,24 +29,11 @@ import suiengine.shared.generated.resources.Res
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 @Preview
-fun App() {
+fun App(
+    vm: AppVM = viewModel { AppVM() }
+) {
 
-    val suiengine = remember { SUIEngine() }
-    var state by remember { mutableStateOf<DataState<String>>(DataState.Idle) }
-
-    //
-    LaunchedEffect(Unit) {
-        if (state is DataState.Idle) {
-            state = DataState.Loading
-            runCatching {
-                val path = "files/example01.js"
-                val bytes = Res.readBytes(path)
-                state = DataState.Success(bytes.decodeToString())
-            }.onFailure {
-                state = DataState.Error(it.message ?: "Erro desconhecido ao carregar o script")
-            }
-        }
-    }
+    val state by vm.state.collectAsStateWithLifecycle()
 
     MaterialTheme {
         when (val localState = state) {
@@ -59,15 +48,14 @@ fun App() {
                     modifier = Modifier
                         .background(MaterialTheme.colorScheme.errorContainer)
                         .fillMaxSize()
-                        .padding(24.dp)
-                    ,
+                        .padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(text = localState.msg, color = MaterialTheme.colorScheme.onErrorContainer)
                 }
             }
             is DataState.Success -> {
-                suiengine.Render(localState.payload)
+                vm.suiEngine.Render(localState.payload)
             }
         }
     }

@@ -15,8 +15,8 @@
             on_submit = @set($sub_form, @fields())
         ) {
             col(fill = 1, v_arrange = "center", h_align = "center") {
-                textfield("nome")
-                textfield("email")
+                text_field("nome")
+                text_field("email")
                 btn("submit", on_touch = @submit())
                 btn("reset", on_touch = @reset())
             }

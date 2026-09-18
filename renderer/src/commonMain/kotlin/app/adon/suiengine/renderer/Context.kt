@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.NodePathSegment
 import app.adon.suiengine.renderer.extensions.closestInstance
@@ -29,8 +31,8 @@ open class Context(
             vm = vm
         )
     }
-    fun newFormChild(name: String): FormContext {
-        return FormContext(name = name, parent = this, vm = vm)
+    fun newFormChild(name: String, fields: Node.Dict): FormContext {
+        return FormContext(name = name, parent = this, vm = vm, fields = fields)
     }
 
     // layout scope
@@ -85,13 +87,13 @@ open class Context(
         return virtualStore[key] ?: parent?.retrieveVirtualState(key)
     }
 
-    // textfield state
-    fun registerTextField(name: String, state: TextFieldState) {
-        val formContext = this.closestInstance<FormContext>()
+    //
+    fun safeClosestForm(name: String?): FormContext? {
+        return this.closestInstance<FormContext> { name == null || it.name == name }
             ?: run {
-                raise("textfield [${name}] is not in @form boundary")
-                return
+                raise("form [$name] não encontrado")
+                null
             }
-        formContext.addField(name, state)
     }
+
 }
