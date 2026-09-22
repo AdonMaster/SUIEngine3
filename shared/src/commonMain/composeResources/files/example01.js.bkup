@@ -1,0 +1,30 @@
+@declare(show_dialog = false)
+
+@form(
+    name = "login",
+    fields = {
+        name: "Adon",
+        email: "adon@hotmail.com"
+    },
+    fill = 1, h_align = "center", v_arrange = "center"
+) {
+    text_field("name")
+    text_field("email")
+
+    btn(
+        "show dialog",
+        on_touch = @set(show_dialog = true)
+    )
+}
+
+dialog($show_dialog, on_dismiss = @set(show_dialog = false)) {
+    surface(background = "ffffff", corner_radius = 8) {
+        col(padding = 20, h_align = "center", v_arrange = "spaced_by:8") {
+            text("chibungo eletrico")
+            btn(
+                "dismiss",
+                on_touch = @set(show_dialog = false)
+            )
+        }
+    }
+}

@@ -4,28 +4,28 @@ class Parser(private val tokens: List<Token>) {
 
     private var current = 0
 
-    private fun peek(): Token {
-        var index = current
-        while (index < tokens.size && (tokens[index].type == TokenType.COMMENT || tokens[index].type == TokenType.BLOCK_COMMENT)) {
-            index++
+    private fun skipComments() {
+        while (current < tokens.size &&
+            (tokens[current].type == TokenType.COMMENT || tokens[current].type == TokenType.BLOCK_COMMENT)) {
+            current++
         }
-        return if (index < tokens.size) tokens[index] else tokens.last() // Retorna EOF se acabar
+    }
+
+    private fun peek(): Token {
+        skipComments()
+        return if (current < tokens.size) tokens[current] else tokens.last()
     }
 
     private fun advance(): Token {
-        while (!isAtEnd() && (tokens[current].type == TokenType.COMMENT || tokens[current].type == TokenType.BLOCK_COMMENT)) {
-            current++
-        }
+        skipComments()
+        val token = peek()
         if (!isAtEnd()) current++
-        return tokens[current - 1]
+        return token
     }
 
     private fun isAtEnd(): Boolean {
-        var index = current
-        while (index < tokens.size && (tokens[index].type == TokenType.COMMENT || tokens[index].type == TokenType.BLOCK_COMMENT)) {
-            index++
-        }
-        return index >= tokens.size || tokens[index].type == TokenType.EOF
+        skipComments()
+        return current >= tokens.size || tokens[current].type == TokenType.EOF
     }
 
     private fun check(type: TokenType): Boolean {
@@ -48,7 +48,7 @@ class Parser(private val tokens: List<Token>) {
         throw RuntimeException("$message na linha ${peek().line}, coluna ${peek().column}")
     }
 
-    // Método principal que converte todo o script em uma lista de nós AST
+    //
     fun parse(): List<Node> {
         val nodes = mutableListOf<Node>()
         while (!isAtEnd()) {
@@ -61,25 +61,22 @@ class Parser(private val tokens: List<Token>) {
     private fun parseExpression(): Node {
         val token = peek()
         return when (token.type) {
-            TokenType.INT -> {
+            TokenType.INT, TokenType.FLOAT -> {
                 advance()
-                Node.Integer(token.value.toInt())
-            }
-            TokenType.REAL -> {
-                advance()
-                Node.Real(token.value.toFloat())
+                val hasDigits = token.type == TokenType.FLOAT
+                Node.Number(token.value.toDouble(), hasDigits = hasDigits, extension = extractExtension())
             }
             TokenType.STRING -> {
                 advance()
-                Node.Str(token.value)
+                Node.Str(token.value, extension = extractExtension())
             }
             TokenType.TRUE -> {
                 advance()
-                Node.Bool(true)
+                Node.Bool(true, extension = extractExtension())
             }
             TokenType.FALSE -> {
                 advance()
-                Node.Bool(false)
+                Node.Bool(false, extension = extractExtension())
             }
             TokenType.NULL -> {
                 advance()
@@ -105,14 +102,19 @@ class Parser(private val tokens: List<Token>) {
                 advance() // consume o $
                 val segments = mutableListOf<NodePathSegment>()
 
-                // Pega o identificador raiz obrigatório
+                // root
                 val firstId = consume(TokenType.IDENTIFIER, "Esperado o nome da variável após '$' na linha ${token.line}")
-                segments.add(NodePathSegment.Property(firstId.value))
+                val rootName = firstId.value
 
-                // Fica em loop consumindo .propriedade ou [indice] em qualquer ordem
+                //
+                var extensionName: String? = null
                 while (true) {
                     if (match(TokenType.DOT)) {
                         val propToken = consume(TokenType.IDENTIFIER, "Esperado o nome da propriedade após '.'")
+                        if (peek().type == TokenType.LPAREN) {
+                            extensionName = propToken.value
+                            break
+                        }
                         segments.add(NodePathSegment.Property(propToken.value))
                     }
                     else if (check(TokenType.LARR)) { // [
@@ -126,7 +128,7 @@ class Parser(private val tokens: List<Token>) {
                     }
                 }
 
-                Node.Var(segments)
+                Node.Var(rootName, segments, extension = extractExtension(extensionName))
             }
             TokenType.IDENTIFIER -> {
                 val name = advance().value
@@ -159,13 +161,11 @@ class Parser(private val tokens: List<Token>) {
             mapData[key] = valueNode
 
             // Se houver vírgula, consome e continua; senão, sai do loop
-            if (!match(TokenType.COMMA)) {
-                break
-            }
+            if (!match(TokenType.COMMA) || check(TokenType.RARR)) { break }
         }
 
         consume(TokenType.RBRACE, "Esperado '}' para fechar o Hash")
-        return Node.Dict(mapData)
+        return Node.Dict(mapData, extension = extractExtension())
     }
 
     private fun parseArray(): Node {
@@ -174,14 +174,15 @@ class Parser(private val tokens: List<Token>) {
         while (!check(TokenType.RARR) && !isAtEnd()) {
             val value = parseExpression()
             res.add(value)
-            if (!match(TokenType.COMMA)) { break }
+            if (!match(TokenType.COMMA) || check(TokenType.RARR)) { break }
         }
         consume(TokenType.RARR, "Esperado ']' para fechar Array")
-        return Node.Arr(res.toList())
+
+        return Node.Arr(res.toList(), extension = extractExtension())
     }
 
     // Analisa a estrutura da função: name(params) { children/corpo }
-    private fun parseFunction(name: String): Node {
+    private fun parseFunction(name: String): Node.Fn {
         val params = parseParams()
         consume(TokenType.RPAREN, "Esperado ')' após os parâmetros da função")
 
@@ -195,7 +196,7 @@ class Parser(private val tokens: List<Token>) {
             consume(TokenType.RBRACE, "Esperado '}' para fechar o corpo da função")
         }
 
-        return Node.Fn(name = name, params = params, children = children)
+        return Node.Fn(name = name, params = params, children = children, extension = extractExtension())
     }
 
     private fun parseParams(): List<Node.Param> {
@@ -221,10 +222,22 @@ class Parser(private val tokens: List<Token>) {
                 res.add(Node.Param(null, value))
             }
             //
-            if (!match(TokenType.COMMA)) {
-                break
-            }
+            if (!match(TokenType.COMMA) || check(TokenType.RARR)) { break }
         }
         return res.toList()
+    }
+
+    private fun extractExtension(solvedName: String? = null): Node.Fn? {
+        val name = solvedName ?: if (match(TokenType.DOT)) {
+            consume(TokenType.IDENTIFIER, "Esperado o nome da extensão após o '.'").value
+        } else {
+            return null
+        }
+
+        if (!match(TokenType.LPAREN)) {
+            throw RuntimeException("Esperado parêntese após o identificador da extensão '$name'")
+        }
+
+        return parseFunction(name)
     }
 }

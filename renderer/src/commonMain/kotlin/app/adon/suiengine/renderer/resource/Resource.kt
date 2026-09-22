@@ -1,26 +1,34 @@
 package app.adon.suiengine.renderer.resource
 
-import org.jetbrains.compose.resources.DrawableResource
+import androidx.compose.runtime.State
+import androidx.compose.runtime.mutableStateOf
+import app.adon.suiengine.renderer.state.DataState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
-
-@Suppress("ArrayInDataClass")
-sealed class ResourceItem {
-    data class Drawable(val v: DrawableResource) : ResourceItem()
-    data class File(val v: ByteArray) : ResourceItem()
-}
-
-class Resource(
+class Resource<T>(
+    private val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main),
+    private val cb: suspend ()->T
 ) {
-    private val _cache = mutableMapOf<String, ResourceItem>()
-    val cache: Map<String, ResourceItem> get() = _cache
 
-    fun register(name: String, drawable: DrawableResource): Resource {
-        _cache[name] = ResourceItem.Drawable(drawable)
-        return this
+    private val _state = mutableStateOf<DataState<T>>(DataState.Idle)
+    val state: State<DataState<T>> = _state
+
+    init {
+        resolve()
     }
-    fun register(name: String, bytes: ByteArray): Resource {
-        _cache[name] = ResourceItem.File(bytes)
-        return this
+
+    fun resolve() {
+        _state.value = DataState.Loading
+        scope.launch {
+            try {
+                _state.value = DataState.Success(cb())
+            } catch (e: Exception) {
+                _state.value = DataState.Error(e.message ?: "resource: 14323")
+            }
+        }
     }
 
 }

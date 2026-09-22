@@ -1,7 +1,7 @@
 package app.adon.suiengine.ast
 
 enum class TokenType {
-    INT, REAL, STRING, TRUE, FALSE, NULL,
+    INT, FLOAT, STRING, TRUE, FALSE, NULL,
 
     IDENTIFIER,
 
@@ -29,6 +29,7 @@ class Lexer(private val input: String) {
     private val length = input.length
 
     private fun peek(): Char = if (position < length) input[position] else '\u0000'
+    private fun peekNext(): Char = if (position + 1 < length) input[position + 1] else '\u0000'
     private fun advance(): Char {
         val current = peek()
         position++
@@ -80,15 +81,18 @@ class Lexer(private val input: String) {
                     }
                     if (isDigit(peek())) {
                         var isReal = false
-                        while (isDigit(peek()) || peek() == '.') {
-                            if (peek() == '.') {
-                                if (isReal) break // segundo ponto inválido no número
-                                isReal = true
-                            }
+                        while (isDigit(peek())) {
                             sb.append(advance())
                         }
+                        if (peek() == '.' && isDigit(peekNext())) {
+                            isReal = true
+                            sb.append(advance()) // Consome o '.'
+                            while (isDigit(peek())) {
+                                sb.append(advance())
+                            }
+                        }
                         val text = sb.toString()
-                        val type = if (isReal) TokenType.REAL else TokenType.INT
+                        val type = if (isReal) TokenType.FLOAT else TokenType.INT
                         tokens.add(Token(type, text, line, startCol))
                     } else {
                         throw RuntimeException("Operador ou caractere inesperado na linha $line, coluna $startCol")
