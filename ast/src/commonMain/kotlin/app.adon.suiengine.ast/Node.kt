@@ -29,7 +29,8 @@ sealed class Node {
     data class Dict(val v: Map<String, Node>, override val extension: Fn?): Node(), NodeExtended
 
     data class Fn(
-        val name: String, val params: List<Param>, val children: List<Node>, override val extension: Fn?
+        val name: String, val params: List<Param>, val children: List<Node>,
+        override val extension: Fn?
     ): Node(), NodeExtended
     data class Param(val name: String?, val value: Node): Node()
     data class Var(

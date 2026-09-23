@@ -92,7 +92,7 @@ class Parser(private val tokens: List<Token>) {
                 advance() // consume o @
                 val name = consume(TokenType.IDENTIFIER, "Esperado o nome da função após '@' na linha ${token.line}")
                 val fullName = "@${name.value}"
-                if (match(TokenType.LPAREN)) {
+                if (peek().type == TokenType.LPAREN || peek().type == TokenType.LBRACE) {
                     parseFunction(fullName)
                 } else {
                     throw RuntimeException("Esperado parêntese após o identificador '$fullName' na linha ${token.line}")
@@ -132,10 +132,10 @@ class Parser(private val tokens: List<Token>) {
             }
             TokenType.IDENTIFIER -> {
                 val name = advance().value
-                if (match(TokenType.LPAREN)) {
+                if (peek().type == TokenType.LPAREN || peek().type == TokenType.LBRACE) {
                     parseFunction(name)
                 } else {
-                    throw RuntimeException("Esperado parêntese após o identificador '$name'")
+                    throw RuntimeException("Esperado parêntese ou chave após o identificador '$name'")
                 }
             }
             else -> throw RuntimeException("Token inesperado '${token.value}' na linha ${token.line}")
@@ -183,10 +183,16 @@ class Parser(private val tokens: List<Token>) {
 
     // Analisa a estrutura da função: name(params) { children/corpo }
     private fun parseFunction(name: String): Node.Fn {
-        val params = parseParams()
-        consume(TokenType.RPAREN, "Esperado ')' após os parâmetros da função")
+        var params = emptyList<Node.Param>()
+        if (check(TokenType.LBRACE)) {
 
-        // Lê o bloco de código da função entre chaves
+        } else {
+            consume(TokenType.LPAREN, "Esperado '(' após função [$name]")
+            params = parseParams()
+            consume(TokenType.RPAREN, "Esperado ')' após os parâmetros da função")
+        }
+
+        //
         val children = mutableListOf<Node>()
         if (peek().type == TokenType.LBRACE) {
             consume(TokenType.LBRACE, "Esperado '{' para iniciar o corpo da função")
@@ -208,8 +214,8 @@ class Parser(private val tokens: List<Token>) {
             }
             else if (check(TokenType.IDENTIFIER)) {
                 val maybeKey = advance().value
-                if (check(TokenType.LPAREN)) {
-                    advance()
+                if (peek().type == TokenType.LPAREN || peek().type == TokenType.LBRACE) {
+                    //advance()
                     val value = parseFunction(maybeKey)
                     res.add(Node.Param(null, value))
                 } else {
@@ -234,8 +240,8 @@ class Parser(private val tokens: List<Token>) {
             return null
         }
 
-        if (!match(TokenType.LPAREN)) {
-            throw RuntimeException("Esperado parêntese após o identificador da extensão '$name'")
+        if (peek().type != TokenType.LPAREN && peek().type != TokenType.LBRACE) {
+            throw RuntimeException("Esperado parêntese ou chave após o identificador da extensão '$name'")
         }
 
         return parseFunction(name)

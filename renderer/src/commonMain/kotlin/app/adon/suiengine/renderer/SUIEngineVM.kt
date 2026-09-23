@@ -7,20 +7,20 @@ import androidx.lifecycle.viewModelScope
 import app.adon.suiengine.ast.Lexer
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.Parser
-import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.state.DataState
-import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class SUIEngineVM(
     private val rawCode: String
 ) : ViewModel() {
 
     //
-    private val _nodes = MutableStateFlow<DataState<List<Context>>>(DataState.Idle)
+    private val _nodes = MutableStateFlow<DataState<List<Node.Fn>>>(DataState.Idle)
     val nodes = _nodes.asStateFlow()
 
     //
@@ -31,33 +31,19 @@ class SUIEngineVM(
     }
 
     // setup
-    private fun setup() {
-        with(Dispatchers.Default) {
-            _nodes.value = DataState.Loading
-            runCatching {
+    private suspend fun setup() {
+        _nodes.value = DataState.Loading
+        withContext(NonCancellable) {
+            _nodes.value = try {
                 val lexer = Lexer(rawCode)
                 val parser = Parser(lexer.tokenize())
-                parser.parse()
-            }.onSuccess { res ->
-                val nodeRoot = Node.Fn("root", emptyList(), emptyList(), null)
-                val rootContext = Context(nodeRoot, null, emptyList(), this@SUIEngineVM)
-                val contexts = res.filterIsInstance<Node.Fn>().map {
-                    buildContextTree(it, rootContext)
-                }
-                _nodes.value = DataState.Success(contexts)
-            }.onFailure {
-                _nodes.value = DataState.Error(it.message ?: "err:122")
+                val nodes = parser.parse()
+                val fnNodes = nodes.filterIsInstance<Node.Fn>()
+                DataState.Success(fnNodes)
+            } catch (e: Exception) {
+                DataState.Error(e.message ?: "err:122")
             }
         }
-    }
-    private fun buildContextTree(node: Node.Fn, parent: Context): Context {
-        val currentContext = Context(
-            node = node, parent = parent, children = emptyList(), vm = this@SUIEngineVM
-        )
-        val children = node.children.filterIsInstance<Node.Fn>().map { childNode ->
-            buildContextTree(childNode, parent = currentContext)
-        }
-        return currentContext.copy(children = children)
     }
 
     // err

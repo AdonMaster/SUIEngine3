@@ -2,25 +2,26 @@ package app.adon.suiengine.renderer.renderer
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.key
+import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
+import kotlinx.coroutines.NonCancellable.key
 
 @Composable
-fun RenderEntry(contexts: List<Context>) {
-    RenderGroup(contexts)
+fun RenderEntry(nodes: List<Node.Fn>, context: Context) {
+    RenderGroup(nodes, context)
 }
 
-private val allRenderers = renderRegistryMisc + renderRegistryState
-
+private val allRenderers = renderRegistryState + renderRegistryMisc + renderRegistryFlow
 
 @Composable
-fun RenderGroup(contexts: List<Context>) {
-    contexts.forEachIndexed { index, context ->
-        key(context.uid) {
-            val renderer = allRenderers[context.name]
+fun RenderGroup(fns: List<Node.Fn>, context: Context) {
+    fns.forEachIndexed { index, node ->
+        key(node.uid) {
+            val renderer = allRenderers[node.name]
             if (renderer != null) {
-                renderer.invoke(context)
+                renderer.invoke(node, context)
             } else {
-                context.raise("Componente <${context.name}>[$index] não encontrado")
+                context.raise("Componente <${node.name}>[$index] não encontrado")
                 return@forEachIndexed
             }
         }

@@ -1,6 +1,7 @@
 package app.adon.suiengine.renderer.renderer.props
 
 import androidx.compose.ui.Modifier
+import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.node.eval.evalToStr
 import app.adon.suiengine.renderer.node.modifier.extractModifier
@@ -11,11 +12,11 @@ data class TextProps(
     val text: String,
 )
 
-fun Context.resolveTextProps(): TextProps {
-    val ps = node.paramSolver("text")
-    val text = ps.get("text")?.evalToStr(this) ?: ""
+fun Node.Fn.resolveTextProps(context: Context): TextProps {
+    val ps = paramSolver("text")
+    val text = ps.get("text")?.evalToStr(context) ?: ""
     return TextProps(
-        modifier = node.extractModifier(this),
+        modifier = extractModifier(context),
         text = text
     )
 }

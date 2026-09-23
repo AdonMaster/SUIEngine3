@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.extensions.registerComponent
 import app.adon.suiengine.renderer.invoker.Invoker
@@ -18,72 +19,76 @@ import app.adon.suiengine.renderer.renderer.props.resolveRowProps
 import app.adon.suiengine.renderer.renderer.props.resolveTextProps
 
 
-val renderRegistryMisc = buildMap<String, @Composable (Context) -> Unit> {
+val renderRegistryMisc = buildMap<String, @Composable (Node.Fn, Context) -> Unit> {
 
     registerComponent(
         "box",
-        resolveProps = { resolveBoxProps() }
-    ) { p ->
+        resolveProps = { node, context -> node.resolveBoxProps(context) }
+    ) { p, context ->
         Box(modifier = p.modifier, contentAlignment = p.align) {
-            RenderGroup(children)
+            val childContext = context.newChild("box")
+            RenderGroup(p.children, childContext)
         }
     }
 
     registerComponent(
         "col",
-        resolveProps = { resolveColProps() }
-    ) { props ->
+        resolveProps = { node, context -> node.resolveColProps(context) }
+    ) { p, context ->
         Column(
-            modifier = props.modifier,
-            verticalArrangement = props.vArrange,
-            horizontalAlignment = props.hAlign
+            modifier = p.modifier,
+            verticalArrangement = p.vArrange,
+            horizontalAlignment = p.hAlign
         ) {
-            RenderGroup(children)
+            val childContext = context.newChild("col")
+            RenderGroup(p.children, childContext)
         }
     }
 
     registerComponent(
         "row",
-        resolveProps = { resolveRowProps() }
-    ) { props ->
+        resolveProps = { node, context -> node.resolveRowProps(context) }
+    ) { p, context ->
         Row(
-            modifier = props.modifier,
-            horizontalArrangement = props.hArrange,
-            verticalAlignment = props.vAlign
+            modifier = p.modifier,
+            horizontalArrangement = p.hArrange,
+            verticalAlignment = p.vAlign
         ) {
-            RenderGroup(children)
+            val childContext = context.newChild("row")
+            RenderGroup(p.children, childContext)
         }
     }
 
     registerComponent(
         "spacer",
-        resolveProps = { node.extractModifier(this) }
-    ) { mod ->
-        Spacer(modifier = mod)
+        resolveProps = { node, context -> node.extractModifier(context) }
+    ) { p, _ ->
+        Spacer(modifier = p)
     }
 
     registerComponent(
         "text",
-        resolveProps = { resolveTextProps() }
-    ) { props ->
+        resolveProps = { node, context -> node.resolveTextProps(context) }
+    ) { p, _ ->
         Text(
-            text = props.text,
-            modifier = props.modifier
+            text = p.text,
+            modifier = p.modifier
         )
     }
 
     registerComponent(
         "btn",
-        resolveProps = { resolveButtonProps() }
-    ) { props ->
+        resolveProps = { node, context -> node.resolveButtonProps(context) }
+    ) { p, context ->
         Button(
-            modifier = props.modifier,
+            modifier = p.modifier,
             onClick = {
-                Invoker.trigger(props.onTouch, this)
+                Invoker.trigger(p.onTouch, context)
             },
         ) {
-            props.text?.let { Text(it) }
-            RenderGroup(children)
+            p.text?.let { Text(it) }
+            val childContext = context.newChild("text")
+            RenderGroup(p.children, childContext)
         }
     }
 }

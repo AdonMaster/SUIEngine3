@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.adon.suiengine.renderer.components.DialogErrorStack
 import app.adon.suiengine.renderer.components.TextError
+import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.renderer.RenderEntry
 import app.adon.suiengine.renderer.state.DataState
 
@@ -59,7 +60,10 @@ fun SUIEngine(
                 TextError(state.reason)
             }
             is DataState.Success -> {
-                RenderEntry(state.payload)
+                RenderEntry(
+                    state.payload,
+                    context = Context("root", null, vm)
+                )
             }
         }
     }

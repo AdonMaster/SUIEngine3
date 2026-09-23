@@ -2,7 +2,9 @@ declare(
     click_count = 0,
     is_even = $click_count.mod(2).eq(0),
     status_label = $is_even.pick("PAR", "ÍMPAR"),
-    user_title = "Olá, ".concat(default([2, $user_name], "Dev Anônimo"))
+    user_title = "Olá, ".concat(default([2, $user_name], "Dev Anônimo")),
+    threshold = 5,
+    sixes = 6.repeat(3)
 )
 
 col(
@@ -15,5 +17,14 @@ col(
         on_touch = @set(click_count = $click_count.add(1))
     )
 
-    text("Status: ".concat($status_label))
+    text(6.repeat(3))
+
+    if ($is_even) {
+        text("even")
+    }
+    else_if ($click_count.gt($threshold)) {
+        text("odd greater than ".concat($threshold))
+    } else {
+        text("just odd!")
+    }
 }

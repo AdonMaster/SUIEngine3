@@ -5,13 +5,20 @@ import app.adon.suiengine.renderer.SUIEngineVM
 import app.adon.suiengine.renderer.extensions.upwards
 
 
+//
 class StateStoreKeyNotFoundException(key: String): Exception("state store [$key] not found")
 
-data class Context(val node: Node.Fn, val parent: Context?, val children: List<Context>, private val vm: SUIEngineVM) {
+//
+open class Context(val name: String, val parent: Context?, private val vm: SUIEngineVM) {
 
-    // accessors
-    val uid get() = node.uid
-    val name get() = node.name
+    // children
+    private val _children = mutableListOf<Context>()
+    val children: List<Context> get() = _children
+    fun newChild(name: String) = Context(name, this, vm)
+        .also { _children.add(it) }
+    fun newIfElseChild(type: IfElseType, resolved: Boolean) = IfElseContext(type, resolved, this, vm)
+        .also { _children.add(it) }
+
 
     // raise
     fun raise(reason: String) {
@@ -23,7 +30,7 @@ data class Context(val node: Node.Fn, val parent: Context?, val children: List<C
 
     // virtual state
     private val virtualState = mutableMapOf<String, Node>()
-    private fun setVirtual(key: String, value: Node) {
+    fun setVirtual(key: String, value: Node) {
         virtualState[key] = value
     }
     private fun retrieveVirtual(key: String): Node? {
@@ -32,8 +39,8 @@ data class Context(val node: Node.Fn, val parent: Context?, val children: List<C
 
     // state
     private val stateBinding = mutableMapOf<String, String>()
-    fun initState(key: String, value: Node) {
-        val bindingKey = "${uid}.${key}"
+    fun initState(stableId: String, key: String, value: Node) {
+        val bindingKey = "${stableId}.${key}"
         stateBinding[key] = bindingKey
         vm.initState(bindingKey, value)
     }
