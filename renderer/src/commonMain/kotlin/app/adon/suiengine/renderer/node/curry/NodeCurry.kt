@@ -10,7 +10,8 @@ object NodeCurry {
 
     private val allRegistries = nodeCurryRegistryLogical + nodeCurryRegistryMath +
             nodeCurryRegistryConversions + nodeCurryRegistryComparison +
-            nodeCurryRegistryStr + nodeCurryRegistryGeneration
+            nodeCurryRegistryStr + nodeCurryRegistryGeneration +
+            nodeCurryRegistryArr
 
     fun resolve(node: Node, context: Context, seen: MutableSet<String>): Node {
         val ext = (node as? NodeExtended)?.extension ?: return node

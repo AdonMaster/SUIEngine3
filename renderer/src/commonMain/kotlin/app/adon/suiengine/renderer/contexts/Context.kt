@@ -11,14 +11,9 @@ class StateStoreKeyNotFoundException(key: String): Exception("state store [$key]
 //
 open class Context(val name: String, val parent: Context?, private val vm: SUIEngineVM) {
 
-    // children
-    private val _children = mutableListOf<Context>()
-    val children: List<Context> get() = _children
+    // children factory
     fun newChild(name: String) = Context(name, this, vm)
-        .also { _children.add(it) }
-    fun newIfElseChild(type: IfElseType, resolved: Boolean) = IfElseContext(type, resolved, this, vm)
-        .also { _children.add(it) }
-
+    fun newFormChild(name: String) = FormContext(name, this, vm)
 
     // raise
     fun raise(reason: String) {
@@ -33,16 +28,16 @@ open class Context(val name: String, val parent: Context?, private val vm: SUIEn
     fun setVirtual(key: String, value: Node) {
         virtualState[key] = value
     }
-    private fun retrieveVirtual(key: String): Node? {
+    open fun retrieveVirtual(key: String): Node? {
         return virtualState[key] ?: parent?.retrieveVirtual(key)
     }
 
     // state
     private val stateBinding = mutableMapOf<String, String>()
-    fun initState(stableId: String, key: String, value: Node) {
+    fun getOrPutState(stableId: String, key: String, value: Node): Node {
         val bindingKey = "${stableId}.${key}"
         stateBinding[key] = bindingKey
-        vm.initState(bindingKey, value)
+        return vm.stateGetOrPut(bindingKey, value)
     }
     private fun findBindingKey(key: String): String? {
         return stateBinding[key] ?: parent?.findBindingKey(key)
@@ -55,7 +50,8 @@ open class Context(val name: String, val parent: Context?, private val vm: SUIEn
     }
     fun setState(key: String, value: Node) {
         val bindingKey = findBindingKey(key) ?: throw StateStoreKeyNotFoundException(key)
-        vm.initState(bindingKey, value)
+        vm.statePut(bindingKey, value)
     }
 
 }
+

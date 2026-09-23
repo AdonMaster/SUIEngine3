@@ -9,7 +9,8 @@ import app.adon.suiengine.renderer.node.paramSolver
 data class ForEachProps(
     val items: List<Node>,
     val asName: String,
-    val indexName: String
+    val indexName: String,
+    val children: List<Node>
 )
 
 fun Node.Fn.resolveForEachProps(context: Context): ForEachProps {
@@ -29,6 +30,7 @@ fun Node.Fn.resolveForEachProps(context: Context): ForEachProps {
     return ForEachProps(
         items = arrayNode.v,
         asName = asName,
-        indexName = indexName
+        indexName = indexName,
+        children = children
     )
 }

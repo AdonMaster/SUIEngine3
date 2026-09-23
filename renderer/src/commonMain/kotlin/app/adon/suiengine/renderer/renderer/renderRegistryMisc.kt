@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.material3.Button
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import app.adon.suiengine.ast.Node
@@ -64,6 +65,13 @@ val renderRegistryMisc = buildMap<String, @Composable (Node.Fn, Context) -> Unit
         resolveProps = { node, context -> node.extractModifier(context) }
     ) { p, _ ->
         Spacer(modifier = p)
+    }
+
+    registerComponent(
+        "divider",
+        resolveProps = { node, context -> node.extractModifier(context) }
+    ) { p, _ ->
+        HorizontalDivider(modifier = p)
     }
 
     registerComponent(

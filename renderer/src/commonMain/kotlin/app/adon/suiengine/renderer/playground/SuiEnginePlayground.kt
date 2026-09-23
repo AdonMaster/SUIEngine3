@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.dp
 import app.adon.suiengine.ast.Lexer
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.Parser
+import app.adon.suiengine.ast.normalizeIfChains
 import app.adon.suiengine.renderer.components.TextError
 
 @Composable
@@ -67,6 +68,7 @@ private fun ColumnScope.Top(textState: TextFieldState) {
                     val lexer = Lexer(currentText)
                     val parser = Parser(lexer.tokenize())
                     parser.parse()
+                        .normalizeIfChains()
                 }.onSuccess { parsedNodes ->
                     err = ""
                     value = parsedNodes

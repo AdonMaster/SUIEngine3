@@ -11,7 +11,7 @@ val renderRegistryState = buildMap<String, @Composable (node: Node.Fn, context: 
         try {
             node.params.forEach { param ->
                 val key = param.name ?: throw Exception("[declare] requires named params")
-                context.initState(node.uid, key, param.value)
+                context.getOrPutState(node.uid, key, param.value)
             }
         } catch (e: Exception) {
             context.raise(e)

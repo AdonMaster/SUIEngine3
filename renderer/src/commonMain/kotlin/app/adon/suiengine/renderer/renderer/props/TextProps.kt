@@ -16,7 +16,7 @@ fun Node.Fn.resolveTextProps(context: Context): TextProps {
     val ps = paramSolver("text")
     val text = ps.get("text")?.evalToStr(context) ?: ""
     return TextProps(
-        modifier = extractModifier(context),
+        modifier = extractModifier(context, listOf("size")),
         text = text
     )
 }

@@ -9,3 +9,13 @@ fun Context.upwards(cb: (Context)-> Boolean) {
         current = current.parent
     }
 }
+
+inline fun <reified T: Context> Context.findSelfAndAncestors(predicate: (Context) -> Boolean = { true }): T? {
+    var current: Context? = this
+    while (current != null) {
+        if (current is T && predicate(current)) { return current }
+        current = current.parent
+    }
+    return null
+}
+

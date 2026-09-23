@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import app.adon.suiengine.ast.Lexer
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.ast.Parser
+import app.adon.suiengine.ast.normalizeIfChains
 import app.adon.suiengine.renderer.state.DataState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,7 @@ class SUIEngineVM(
 ) : ViewModel() {
 
     //
-    private val _nodes = MutableStateFlow<DataState<List<Node.Fn>>>(DataState.Idle)
+    private val _nodes = MutableStateFlow<DataState<List<Node>>>(DataState.Idle)
     val nodes = _nodes.asStateFlow()
 
     //
@@ -38,8 +39,8 @@ class SUIEngineVM(
                 val lexer = Lexer(rawCode)
                 val parser = Parser(lexer.tokenize())
                 val nodes = parser.parse()
-                val fnNodes = nodes.filterIsInstance<Node.Fn>()
-                DataState.Success(fnNodes)
+                    .normalizeIfChains()
+                DataState.Success(nodes)
             } catch (e: Exception) {
                 DataState.Error(e.message ?: "err:122")
             }
@@ -55,7 +56,12 @@ class SUIEngineVM(
     // state
     private val _states = mutableStateMapOf<String, Node>()
     val states: SnapshotStateMap<String, Node> = _states
-    fun initState(key: String, value: Node) {
+    fun stateGetOrPut(key: String, value: Node): Node {
+        return states.getOrPut(key) {
+            value
+        }
+    }
+    fun statePut(key: String, value: Node) {
         states[key] = value
     }
 
