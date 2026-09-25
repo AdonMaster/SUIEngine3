@@ -30,7 +30,8 @@ val renderRegistryFlow = buildMap<String, @Composable (Node.Fn, Context) -> Unit
         }
     ) { nodeToRender, context ->
         nodeToRender?.let {
-            RenderGroup(it.children, context)
+            val childContext = context.newChild("if_chain", context.layoutScope)
+            RenderGroup(it.children, childContext)
         }
     }
 
@@ -39,7 +40,7 @@ val renderRegistryFlow = buildMap<String, @Composable (Node.Fn, Context) -> Unit
         resolveProps = { node, context -> node.resolveForEachProps(context) }
     ) { props, context ->
         props.items.forEachIndexed { idx, itemNode ->
-            val loopContext = context.newChild("for_each")
+            val loopContext = context.newChild("for_each", context.layoutScope)
             loopContext.setVirtual(props.asName, itemNode)
             loopContext.setVirtual(props.indexName, idx.toNode())
 

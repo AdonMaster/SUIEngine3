@@ -3,8 +3,8 @@
 - Roadmap:
 
 #current
-- if.else
-- foreach
+- tex formatting
+- scrollable
 - render
 
 #prior

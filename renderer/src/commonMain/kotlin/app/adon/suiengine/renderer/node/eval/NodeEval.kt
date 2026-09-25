@@ -3,6 +3,7 @@ package app.adon.suiengine.renderer.node.eval
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.node.curry.NodeCurry
+import app.adon.suiengine.renderer.utils.takeAs
 
 data class NodeEvalFnNotFound(val fn: Node.Fn): Exception("node function [${fn.name}] not found.")
 
@@ -10,9 +11,13 @@ fun Node.eval(context: Context, seen: MutableSet<String> = mutableSetOf()): Node
     return when (val self = this) {
         // primitive
         is Node.Bool,
-        is Node.Str,
         is Node.Number,
         Node.Null -> self
+
+        //
+        is Node.Str -> {
+            NodeEvalStr.resolve(this, context, seen)
+        }
 
         //
         is Node.Arr -> self.copy(v = self.v.map { it.eval(context, seen) })
@@ -51,3 +56,7 @@ fun Node.eval(context: Context, seen: MutableSet<String> = mutableSetOf()): Node
 fun Node.evalToStr(context: Context, seen: MutableSet<String> = mutableSetOf()) = this
     .eval(context, seen)
     .stringableVal()
+
+fun Node.evalToDouble(context: Context, errField: String, seen: MutableSet<String> = mutableSetOf()) = this
+    .eval(context, seen)
+    .takeAs<Node.Number>()?.v ?: throw RuntimeException("[${errField}] requires a number")

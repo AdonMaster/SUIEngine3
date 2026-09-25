@@ -7,20 +7,24 @@ import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.extensions.toAlignment
 import app.adon.suiengine.renderer.node.eval.evalToStr
 import app.adon.suiengine.renderer.node.modifier.extractModifier
+import app.adon.suiengine.renderer.node.paramSolver
 
 data class BoxProps(
     val modifier: Modifier,
-    val align: Alignment,
+    val contentAlignment: Alignment?,
     val children: List<Node.Fn>
 )
 
 fun Node.Fn.resolveBoxProps(context: Context): BoxProps {
+    val ps = paramSolver("content_align")
+    val contentAlignment = ps.get("content_align")?.let {
+        val ss = it.evalToStr(context)
+        ss.toAlignment ?: throw RuntimeException("[align] não reconhece [$ss]")
+    }
+
     return BoxProps(
         modifier = extractModifier(context),
-        align = params
-            .firstOrNull { it.name == "align" }?.value
-            ?.evalToStr(context)
-            ?.toAlignment ?: Alignment.Center,
+        contentAlignment = contentAlignment,
         children = children.filterIsInstance<Node.Fn>()
     )
 }

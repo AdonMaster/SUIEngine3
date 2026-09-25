@@ -9,7 +9,7 @@ import kotlin.math.pow
 
 val nodeCurryRegistryMath = buildMap<String, (Node.Fn, Node, Context, MutableSet<String>) -> Node> {
 
-    register("add") { fn, node, context, seen ->
+    register("add", "sum") { fn, node, context, seen ->
         val (a, b) = extractNumAB(fn, node, context, seen)
         evalMath(a, b) { x, y -> x + y }
     }

@@ -4,65 +4,52 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
-import app.adon.suiengine.renderer.contexts.FormContext
-import app.adon.suiengine.renderer.extensions.findSelfAndAncestors
 import app.adon.suiengine.renderer.extensions.registerComponent
-import app.adon.suiengine.renderer.node.eval.eval
-import app.adon.suiengine.renderer.node.modifier.extractModifier
-import app.adon.suiengine.renderer.node.paramSolver
-import app.adon.suiengine.renderer.renderer.props.resolveColProps
-import app.adon.suiengine.renderer.utils.takeAs
+import app.adon.suiengine.renderer.form.FormFieldSavers
+import app.adon.suiengine.renderer.renderer.props.resolveFormProps
+import app.adon.suiengine.renderer.renderer.props.resolveInputProps
 
 
 val renderRegistryForm = buildMap<String, @Composable (Node.Fn, Context) -> Unit> {
 
     registerComponent(
         "form",
-        resolveProps = { node, context ->
-            val name = node.params.firstOrNull()?.value?.eval(context)?.takeAs<Node.Str>()?.v
-                ?: "default"
-            val props = node.resolveColProps(context)
-            Triple(node, name, props)
-        }
+        resolveProps = { node, context -> node.resolveFormProps(context) }
     ) { props, context ->
-        val (fn, name, props) = props
-
-        Column(modifier = props.modifier) {
-            val formContext = context.newFormChild(name)
-            RenderGroup(fn.children, formContext)
+        Column(
+            modifier = props.colProps.modifier,
+            verticalArrangement = props.colProps.vArrange,
+            horizontalAlignment = props.colProps.hAlign
+        ) {
+            val formContext = remember(props.rememberKey) { context.newFormChild(props.formName, layoutScope = this) }
+            RenderGroup(props.children, formContext)
         }
     }
 
     registerComponent(
         "input",
-        resolveProps = { node, context ->
-            val ps = node.paramSolver("name", "form")
-            val fieldName = ps.get("name")?.eval(context)?.takeAs<Node.Str>()?.v
-                ?: throw RuntimeException("[input] deve ter param name")
-            val formName = ps.get("form")?.eval(context)?.takeAs<Node.Str>()?.v
-            val modifier = node.extractModifier(context)
-            Triple(formName, fieldName, modifier)
+        resolveProps = { node, context -> node.resolveInputProps(context) }
+    ) { props, _ ->
+
+        // saveable
+        val stateRecovered = rememberSaveable(props.rememberKey, saver = FormFieldSavers.TextSaver) {
+            props.state
         }
-    ) { props, context ->
 
-        val (formName, fieldName, modifier) = props
-
-        //
-        val formContext = context.findSelfAndAncestors<FormContext> { formName == null || it.name == formName }
-            ?: error("O componente [input] ('$fieldName') deve estar dentro de um [form]")
-
-        //
-        val fieldState = formContext.getOrPutFieldState(
-            fieldName = fieldName,
-            initialValue = ""
-        )
+        // content synchronization
+        SideEffect {
+            props.targetContext.syncField(props.fieldName, stateRecovered.value)
+        }
 
         OutlinedTextField(
-            state = fieldState,
-            label = { Text(fieldName) },
-            modifier = modifier
+            state = props.state.state,
+            label = props.label?.let { { Text(it) } },
+            modifier = props.modifier
         )
     }
 

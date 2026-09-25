@@ -12,7 +12,7 @@ fun RenderEntry(nodes: List<Node>, context: Context) {
 }
 
 private val allRenderers = renderRegistryState + renderRegistryMisc + renderRegistryFlow +
-        renderRegistryForm
+        renderRegistryForm + renderRegistryLazyCol
 
 @Composable
 fun RenderGroup(nodes: List<Node>, context: Context) {

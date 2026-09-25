@@ -31,13 +31,14 @@ object Invoker {
             }
             is Node.Fn -> {
                 when (fnNode.name) {
-                    "@set" -> {
+                    "set" -> {
                         fnNode.params.forEach { param ->
-                            val key = param.name ?: "@set requer o nome da variavel"
+                            val key = param.name ?: "set requer o nome da variavel"
                             val evaluatedValue = param.value.eval(context, seen)
                             context.setState(key, evaluatedValue)
                         }
                     }
+                    "nop" -> {}
                     else -> throw RuntimeException("can't invoke the following: [${fnNode.name}]")
                 }
             }

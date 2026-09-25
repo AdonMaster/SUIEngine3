@@ -2,17 +2,6 @@ package app.adon.suiengine.ast
 
 import com.benasher44.uuid.uuid4
 
-sealed class NodePathSegment {
-    data class Property(val name: String) : NodePathSegment()
-    data class Index(val indexNode: Node) : NodePathSegment()
-
-    //
-    fun str() = when (this) {
-        is Index -> "[${this.indexNode}]"
-        is Property -> this.name
-    }
-}
-
 interface NodeExtended {
     val extension: Node.Fn?
 }
@@ -59,3 +48,14 @@ fun Int.toNode() = Node.Number(this.toDouble(), false, null)
 fun Double.toNode() = Node.Number(this, true, null)
 fun String.toNode() = Node.Str(this, null)
 fun Boolean.toNode() = Node.Bool(this, null)
+
+
+// var
+sealed class NodePathSegment {
+    data class Property(val name: String) : NodePathSegment()
+    data class Index(val indexNode: Node) : NodePathSegment()
+    fun str() = when (this) {
+        is Index -> "[${this.indexNode}]"
+        is Property -> this.name
+    }
+}

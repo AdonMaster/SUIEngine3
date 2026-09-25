@@ -1,7 +1,10 @@
 package app.adon.suiengine.renderer.extensions
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -17,9 +20,9 @@ val String.toAlignment: Alignment?
         "center" -> Alignment.Center
         "centerend", "center_end", "centerright", "center_right" -> Alignment.CenterEnd
 
-        "bottomstart", "bottom_start", "bottomleft", "bottom_left" -> Alignment.BottomStart
-        "bottomcenter", "bottom_center", "bottom" -> Alignment.BottomCenter
-        "bottomend", "bottom_end", "bottomright", "bottom_right" -> Alignment.BottomEnd
+        "bottomstart", "bottom_start", "bottomleft", "bottom_left", "bot_start" -> Alignment.BottomStart
+        "bottomcenter", "bottom_center", "bottom", "bot_center" -> Alignment.BottomCenter
+        "bottomend", "bottom_end", "bottomright", "bottom_right", "bot_end" -> Alignment.BottomEnd
 
         else -> null
     }
@@ -53,6 +56,59 @@ val String.toFontWeight: FontWeight?
         "medium" -> FontWeight.Medium
         else -> null
     }
+
+enum class M3TextStyleKey(val key: String) {
+    LABEL_SM("label_sm"),
+    LABEL("label"),
+    LABEL_LG("label_lg"),
+    BODY_SM("body_sm"),
+    BODY("body"),
+    BODY_LG("body_lg"),
+    TITLE_SM("title_sm"),
+    TITLE("title"),
+    TITLE_LG("title_lg"),
+    HEAD_SM("head_sm"),
+    HEAD("head"),
+    HEAD_LG("head_lg"),
+    DISPLAY_SM("display_sm"),
+    DISPLAY("display"),
+    DISPLAY_LG("display_lg");
+
+    companion object {
+        fun fromString(value: String): M3TextStyleKey? {
+            val normalized = value.trim().lowercase()
+            return entries.find { it.key == normalized }
+        }
+    }
+}
+
+fun String.toM3StyleKey(): M3TextStyleKey {
+    return M3TextStyleKey.fromString(this)
+        ?: throw Exception("Estilo de texto M3 inválido: [$this]. Verifique a sintaxe da DSL.")
+}
+
+@Composable
+fun M3TextStyleKey.toTextStyle(): TextStyle {
+    val typography = MaterialTheme.typography
+    return when (this) {
+        M3TextStyleKey.LABEL_SM -> typography.labelSmall
+        M3TextStyleKey.LABEL -> typography.labelMedium
+        M3TextStyleKey.LABEL_LG -> typography.labelLarge
+        M3TextStyleKey.BODY_SM -> typography.bodySmall
+        M3TextStyleKey.BODY -> typography.bodyMedium
+        M3TextStyleKey.BODY_LG -> typography.bodyLarge
+        M3TextStyleKey.TITLE_SM -> typography.titleSmall
+        M3TextStyleKey.TITLE -> typography.titleMedium
+        M3TextStyleKey.TITLE_LG -> typography.titleLarge
+        M3TextStyleKey.HEAD_SM -> typography.headlineSmall
+        M3TextStyleKey.HEAD -> typography.headlineMedium
+        M3TextStyleKey.HEAD_LG -> typography.headlineLarge
+        M3TextStyleKey.DISPLAY_SM -> typography.displaySmall
+        M3TextStyleKey.DISPLAY -> typography.displayMedium
+        M3TextStyleKey.DISPLAY_LG -> typography.displayLarge
+    }
+}
+
 
 val String.toHorizontalAlignment: Alignment.Horizontal?
     get() = when (this.trim().lowercase()) {

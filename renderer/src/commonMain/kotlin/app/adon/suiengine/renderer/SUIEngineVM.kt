@@ -12,6 +12,7 @@ import app.adon.suiengine.renderer.state.DataState
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.lastOrNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,8 +51,16 @@ class SUIEngineVM(
     // err
     private val _errStack = MutableStateFlow<List<List<String>>>(emptyList())
     val errStack = _errStack.asStateFlow()
-    fun clearErrStack() { _errStack.value = emptyList() }
-    fun raise(list: List<String>) { _errStack.update { cur -> cur + listOf(list) } }
+    fun clearErrStack() {
+        _errStack.value = emptyList()
+    }
+    fun raise(list: List<String>) {
+        val cur = list.joinToString()
+        val condition = errStack.value.firstOrNull { it.joinToString() == cur } == null
+        if (condition) {
+            _errStack.update { cur -> cur + listOf(list) }
+        }
+    }
 
     // state
     private val _states = mutableStateMapOf<String, Node>()

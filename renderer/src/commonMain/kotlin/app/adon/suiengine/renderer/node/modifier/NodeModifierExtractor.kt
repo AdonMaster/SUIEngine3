@@ -17,8 +17,11 @@ import app.adon.suiengine.ast.Node
 import app.adon.suiengine.renderer.contexts.Context
 import app.adon.suiengine.renderer.extensions.assertNum
 import app.adon.suiengine.renderer.extensions.assertNumArr
+import app.adon.suiengine.renderer.extensions.toAlignment
 import app.adon.suiengine.renderer.extensions.toRGBA
+import app.adon.suiengine.renderer.layout.LayoutScope
 import app.adon.suiengine.renderer.node.eval.eval
+import app.adon.suiengine.renderer.node.eval.evalToStr
 
 
 fun Node.Fn.extractModifier(context: Context, ignore: List<String> = emptyList()) = params
@@ -59,6 +62,24 @@ fun Node.Fn.extractModifier(context: Context, ignore: List<String> = emptyList()
             "rounded", "corner" -> {
                 val r = vv.eval(context).assertNum(p.name!!).v.toFloat()
                 acc.clip(RoundedCornerShape(r.dp))
+            }
+            "align" -> {
+                when (val scope = context.layoutScope) {
+                    is LayoutScope.Box -> {
+                        val ss = vv.eval(context).evalToStr(context)
+                        val rr = ss.toAlignment ?: throw RuntimeException("[align] não reconhece [$ss]")
+                        with(scope.v) { acc.align(rr) }
+                    }
+                    else -> throw RuntimeException("[align] só consigo alinhar dentro do box")
+                }
+            }
+            "weight" -> {
+                val rr = vv.eval(context).assertNum(p.name!!).v.toFloat()
+                when (val scope = context.layoutScope) {
+                    is LayoutScope.Col -> with(scope.v) { acc.weight(rr) }
+                    is LayoutScope.Row -> with(scope.v) { acc.weight(rr) }
+                    else -> throw RuntimeException("[weight] só funciona em layouts segmentados horizontal/vertical")
+                }
             }
             else -> acc
         }
