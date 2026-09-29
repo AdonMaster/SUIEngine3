@@ -202,7 +202,7 @@ class Parser(private val tokens: List<Token>) {
             consume(TokenType.RBRACE, "Esperado '}' para fechar o corpo da função")
         }
 
-        return Node.Fn(name = name, params = params, children = children, extension = extractExtension())
+        return Node.Fn(name = name, params = params, children = children, extension = extractExtension(), null)
     }
 
     private fun parseParams(): List<Node.Param> {
@@ -215,13 +215,24 @@ class Parser(private val tokens: List<Token>) {
             else if (check(TokenType.IDENTIFIER)) {
                 val maybeKey = advance().value
                 if (peek().type == TokenType.LPAREN || peek().type == TokenType.LBRACE) {
-                    //advance()
                     val value = parseFunction(maybeKey)
                     res.add(Node.Param(null, value))
                 } else {
-                    consume(TokenType.EQUAL, "Esperado '=' depois de identifier")
-                    val value = parseExpression()
-                    res.add(Node.Param(maybeKey, value))
+                    val next = peek()
+                    val nextType = next.type
+                    when (nextType) {
+                        TokenType.EQUAL -> {
+                            consume(TokenType.EQUAL, "Esperado '=' depois de identifier")
+                            val value = parseExpression()
+                            res.add(Node.Param(maybeKey, value))
+                        }
+                        TokenType.COMMA, TokenType.RPAREN -> {
+                            res.add(Node.Param(maybeKey, Node.Null))
+                        }
+                        else -> {
+                            throw RuntimeException("erro validando parametros, linha: ${next.line}, coluna: ${next.column}")
+                        }
+                    }
                 }
             } else {
                 val value = parseExpression()

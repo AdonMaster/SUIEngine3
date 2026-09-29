@@ -39,7 +39,8 @@ fun App(
         when (val current = exampleState) {
             DataState.Idle -> Text("Idle")
             DataState.Loading -> CircularProgressIndicator()
-            is DataState.Success -> SUIEngine(current.payload)
+            //is DataState.Success -> SUIEngine(current.payload)
+            is DataState.Success -> SuiEnginePlayground(current.payload)
             is DataState.Error -> TextError(current.reason, modifier = Modifier.fillMaxWidth().padding(20.dp))
         }
     }

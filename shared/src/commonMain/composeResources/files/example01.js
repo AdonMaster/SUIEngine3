@@ -1,13 +1,73 @@
 
+var identifier = expression
+var array = [1, 2, 3]
+val str = "some"
+val int = -3 (unary operator + expression literal)
+val obj = { some: "thing" }
+
+fun template(arg1, arg2) {
+
+    const identifier // expression optional
+
+    statement
+    statement
+    if (expression) {
+        return expression
+    } else if (anotherExpression) {
+        return // (dsl.null)
+    }
+    statement
+    statement
+    ExpressionStatement(expression) // optional
+
+    fun dino() {
+        var d = 55 // statement
+        // statement
+
+        var gg = d + 55 * 45 % 2 / 44 // assign
+
+        dino(explicitKey = expression, expression) // key optional, this is an expression caller... but allowed as last element
+    }
+
+    advanced(lambda = { a ->
+        stament
+    })
+    advanced({ a -> }) // lambda as param
+    advanced({}) // nesse caso pode ser um lambda ou dictionary(dict)... por default, dê preferencia por ser lambda sem params
+    advanced({
+        statement
+        statement
+        expressionstatement(expression)
+    })
+}
+
+
+
+/*
+
+lazy_row(
+    6.repeat(1000), w_fill = 1, snap
+) {
+    surface(
+        corner_radius = 4,
+        bg = "gray_100",
+        padding = [4, 2],
+        on_touch = nop()
+    ) {
+        text(
+            "adon ${item}_${index}",
+            height = 100,
+            padding = 20,
+        )
+    }
+}
+
+/*
 declare(show = false)
 btn(
     "show it",
     on_touch = set(show = $show.not())
 )
-
-if ($show) {
-    text("bot_start", align = "bot_start", background = "red")
-}
 
 if ($show) {
     declare(leave = set(show = $show.not()))

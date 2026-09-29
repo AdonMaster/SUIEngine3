@@ -22,6 +22,7 @@ import app.adon.suiengine.renderer.node.modifier.extractModifier
 import app.adon.suiengine.renderer.node.paramSolver
 import app.adon.suiengine.renderer.utils.coalesce
 import app.adon.suiengine.renderer.utils.takeAs
+import app.adon.suiengine.renderer.utils.ter
 
 data class TextProps(
     val modifier: Modifier,
@@ -37,26 +38,45 @@ data class TextProps(
 )
 
 fun Node.Fn.resolveTextProps(context: Context): TextProps {
-    val paramSolver = paramSolver("text", "size", "style", "text_align", "color", "font_size", "line_height",
-        "overflow", "font_weight", "font_style")
-    val sText = paramSolver.get("text")?.evalToStr(context) ?: ""
-    val styleKey = paramSolver.get("style")?.evalToStr(context)?.toM3StyleKey()
-    val textAlign = paramSolver.get("text_align")?.evalToStr(context)?.toTextAlign
-    val fontStyle: FontStyle? = if (paramSolver.get("font_style")
-            ?.evalToStr(context) == "italic"
-    ) FontStyle.Italic else null
+    val ps = paramSolver(
+        "text", "size", "style", "text_align", "color", "font_size", "line_height", "font_style",
+        "overflow", "italic", "bold", "semibold", "light", "extralight", "extrabold", "thin", "medium",
+        "font_weight"
+    )
+    val sText = ps.get("text")?.evalToStr(context) ?: ""
+    val styleKey = ps.get("style")?.evalToStr(context)?.toM3StyleKey()
+    val textAlign = ps.get("text_align")?.evalToStr(context)?.toTextAlign
+    val fontStyle: FontStyle? = coalesce( {
+        ter(ps.has("italic"), FontStyle.Italic, null)
+    }, {
+        ter(ps.get("font_style")?.evalToStr(context) == "italic", FontStyle.Italic, null)
+    })
+
     val color =
-        paramSolver.get("color")?.evalToStr(context)?.toRGBA() ?: Color.Unspecified
+        ps.get("color")?.evalToStr(context)?.toRGBA() ?: Color.Unspecified
     val fontSize = coalesce(
-        { paramSolver.get("font_size")?.eval(context)?.takeAs<Node.Number>()?.v?.sp },
-        { paramSolver.get("size")?.eval(context)?.takeAs<Node.Number>()?.v?.sp },
+        { ps.get("font_size")?.eval(context)?.takeAs<Node.Number>()?.v?.sp },
+        { ps.get("size")?.eval(context)?.takeAs<Node.Number>()?.v?.sp },
         def = { TextUnit.Unspecified },
     )
     val lineHeight =
-        paramSolver.get("line_height")?.eval(context)?.takeAs<Node.Number>()?.v?.sp ?: TextUnit.Unspecified
-    val overflow = paramSolver.get("overflow")?.evalToStr(context)?.toTextOverflow
+        ps.get("line_height")?.eval(context)?.takeAs<Node.Number>()?.v?.sp ?: TextUnit.Unspecified
+    val overflow = ps.get("overflow")?.evalToStr(context)?.toTextOverflow
         ?: TextOverflow.Clip
-    val weight = paramSolver.get("font_weight")?.evalToStr(context)?.toFontWeight
+    val weight: FontWeight? = coalesce({
+        when {
+            ps.has("bold") -> FontWeight.Bold
+            ps.has("semibold") -> FontWeight.SemiBold
+            ps.has("light") -> FontWeight.Light
+            ps.has("extralight") -> FontWeight.ExtraLight
+            ps.has("extrabold") -> FontWeight.ExtraBold
+            ps.has("thin") -> FontWeight.Thin
+            ps.has("medium") -> FontWeight.Medium
+            else -> null
+        }
+    }, {
+        ps.get("font_weight")?.evalToStr(context)?.toFontWeight
+    })
 
     return TextProps(
         modifier = extractModifier(context, listOf("size")),

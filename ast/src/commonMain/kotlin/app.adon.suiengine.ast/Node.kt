@@ -19,7 +19,7 @@ sealed class Node {
 
     data class Fn(
         val name: String, val params: List<Param>, val children: List<Node>,
-        override val extension: Fn?
+        override val extension: Fn?, val segments: List<NodePathSegment>?
     ): Node(), NodeExtended
     data class Param(val name: String?, val value: Node): Node()
     data class Var(

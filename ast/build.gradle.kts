@@ -20,11 +20,6 @@ kotlin {
         withHostTestBuilder {
         }
 
-        withDeviceTestBuilder {
-            sourceSetTreeName = "test"
-        }.configure {
-            instrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        }
     }
 
     listOf(
@@ -41,6 +36,10 @@ kotlin {
         commonMain.dependencies {
             // uuid
             implementation("com.benasher44:uuid:0.8.4")
+        }
+
+        commonTest.dependencies {
+            implementation(kotlin("test"))
         }
     }
 }

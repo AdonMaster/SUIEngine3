@@ -13,7 +13,8 @@ fun List<Node>.normalizeIfChains(): List<Node> {
                     name = "if_chain",
                     params = emptyList(),
                     children = chain,
-                    extension = null
+                    extension = null,
+                    segments = null
                 )
             )
         }

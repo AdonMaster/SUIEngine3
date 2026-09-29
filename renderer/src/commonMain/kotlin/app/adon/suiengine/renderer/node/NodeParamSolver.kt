@@ -11,6 +11,9 @@ class NodeParamSolver(
     fun get(name: String): Node? {
         return find(name)?.value
     }
+    fun has(name: String): Boolean {
+        return find(name) != null
+    }
 
     fun find(name: String): Node.Param? {
         // named, easy-peasy

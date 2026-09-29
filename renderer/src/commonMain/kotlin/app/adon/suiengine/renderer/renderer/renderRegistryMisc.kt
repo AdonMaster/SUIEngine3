@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ButtonElevation
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -13,6 +15,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
@@ -108,15 +111,30 @@ val renderRegistryMisc = buildMap<String, @Composable (Node.Fn, Context) -> Unit
         "btn",
         resolveProps = { node, context -> node.resolveButtonProps(context) }
     ) { p, context ->
+
+        val bg = p.backgroundColor ?: MaterialTheme.colorScheme.primary
+        val fg = p.foregroundColor ?: MaterialTheme.colorScheme.onPrimary
+
         Button(
             modifier = p.modifier,
             onClick = {
                 Invoker.trigger(p.onTouch, context)
             },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = bg,
+                contentColor = fg
+            ),
+            elevation = ButtonDefaults.buttonElevation(defaultElevation = p.elevation.dp),
+            shape = p.shape,
         ) {
+            // default text
             p.text?.let { Text(it) }
-            val childContext = context.newChild("btn", this.toLayoutScope())
-            RenderGroup(p.children, childContext)
+
+            // more content
+            if (p.children.isNotEmpty()) {
+                val childContext = context.newChild("btn", this.toLayoutScope())
+                RenderGroup(p.children, childContext)
+            }
         }
     }
 

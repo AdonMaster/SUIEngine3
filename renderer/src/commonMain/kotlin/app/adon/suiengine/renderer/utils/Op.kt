@@ -13,3 +13,7 @@ inline fun <reified T> coalesce(vararg callback: ()->T?): T? {
 inline fun <reified T> coalesce(vararg callback: ()->T?, def: ()->T): T {
     return coalesce(*callback) ?: def()
 }
+
+inline fun <reified T> ter(condition: Boolean, yep: T, nop: T) = if (condition) yep else nop
+inline fun <reified T> ter(condition: ()->Boolean, yep: T, nop: T) = if (condition()) yep else nop
+inline fun <reified T> ter(condition: ()->Boolean, yep: ()->T, nop: ()->T) = if (condition()) yep() else nop()
